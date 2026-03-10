@@ -7,7 +7,7 @@ description: >
   or "produce a debate round output". Constructs debate arguments with reasoning chains,
   rebuttals, and evidence references.
   构建包含推理链、反驳和证据引用的辩论论点。
-version: 0.1.0
+version: 0.2.0
 ---
 
 # DebateTurn
@@ -104,6 +104,55 @@ If using historical or classical analogies:
 2. Include ≥ 1 key structural difference
 3. Estimate analogy content share — keep under ~15% of total turn content
 4. Flag any analogy that might fail AnalogySafeguard review
+
+### Step 7: Historical Wisdom (v3) / 历史智慧
+
+Read `config.json` to check `domain` and topic context.
+
+Generate 1-3 historical references relevant to the debate topic:
+
+1. **Select historical events** that share structural similarities with the current topic
+   - Prioritize events from the same domain (e.g., tech debates → historical tech transitions)
+   - Cross-domain historical parallels are welcome when structurally relevant
+2. **For each reference, complete ALL fields** (no partial entries):
+   - `historical_event`: Clear identification of the historical case
+   - `era_context`: Sufficient background for readers unfamiliar with the history
+   - `parallel_to_current`: Specific, causal parallels (not superficial similarity)
+   - `key_differences`: Honest acknowledgment of where the parallel breaks down
+   - `lesson_extracted`: The actionable insight, not just "history repeats"
+   - `applicability_caveat`: Why this lesson might not apply here
+3. **Quality over quantity**: 1 deeply analyzed historical reference > 3 shallow mentions
+4. This section is `weight: "advisory"` — use it to add depth, not to substitute for evidence-based arguments
+
+**What this section is NOT / 这个板块不是:**
+- NOT a replacement for evidence-based arguments (those go in `arguments[]`)
+- NOT subject to the strict AnalogySafeguard rules (but still requires `key_differences`)
+- NOT a place for unsupported speculation (that goes in `speculative_scenarios`)
+
+### Step 8: Speculative Scenarios (v3) / 推演场景
+
+Read `config.json` for `speculation_level`:
+- If `conservative`: SKIP this step entirely. Set `speculative_scenarios` to `null` in output.
+- If `moderate`: Generate 1-2 scenarios grounded in existing evidence
+- If `exploratory`: Generate 2-4 scenarios including unconventional/black swan paths
+
+For each scenario:
+1. **Start with a clear premise**: "If X happens..." — the premise should be specific, not vague
+2. **Build a chain of events**: Show the causal sequence (A leads to B leads to C)
+3. **Estimate probability honestly**: Use the three-tier system (low/medium/high)
+4. **Assess impact**: What would happen if this scenario materializes?
+5. **Identify early warning signals**: What observable events would precede this scenario?
+6. **Include falsification**: What would prove this scenario impossible?
+
+**Guidelines / 指导原则:**
+- `moderate` scenarios should be plausible extensions of verified facts
+- `exploratory` scenarios can include:
+  - Black swan events (low probability, high impact)
+  - Non-linear cascading effects
+  - Scenarios that challenge conventional wisdom
+  - "What if the opposite happens?" inversions
+- Even `exploratory` scenarios must have an internally consistent causal chain
+- Avoid pure fantasy — every scenario should be at least theoretically possible
 
 ## Quality Standards / 质量标准
 

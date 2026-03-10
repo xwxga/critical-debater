@@ -6,7 +6,7 @@ description: >
   "track claim state transitions", or "manage the claim state machine".
   Manages claim state machine transitions and persists to claim_ledger.json.
   管理声明状态机转换并持久化到 claim_ledger.json。
-version: 0.1.0
+version: 0.2.0
 ---
 
 # ClaimLedgerUpdate
@@ -53,6 +53,7 @@ When processing a completed debate turn:
    - `last_verified_at`: null
    - `judge_note`: null
    - `mandatory_response`: false
+   - `conflict_details`: [] (empty initially; populated by Judge during verification)
 3. Append new claims to claim_ledger.json
 4. Log via `scripts/append-audit.sh`:
    ```json
@@ -87,6 +88,10 @@ When processing a JudgeRuling:
    - Call `update_status` logic for the claim
 3. For each item in `mandatory_response_points`:
    - Find the target claim(s) and set `mandatory_response = true`
+3b. For each claim with `new_status = "contested"` in verification_results:
+   - If the Judge's reasoning describes conflicting sources, extract and structure as `conflict_details`
+   - Use LLM to identify: which evidence says what, and where exactly they diverge
+   - Append to the claim's `conflict_details` array (don't overwrite existing conflicts)
 4. Write updated ledger once (not per-claim)
 5. Log batch update to audit trail
 

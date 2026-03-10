@@ -6,7 +6,7 @@ description: >
   for evidence", "build the initial evidence store", or "find supporting data for arguments".
   Searches, fetches, and normalizes sources into EvidenceItem format for the debate evidence store.
   搜索、抓取并将来源规范化为 EvidenceItem 格式。
-version: 0.1.0
+version: 0.2.0
 ---
 
 # SourceIngest
@@ -43,6 +43,14 @@ Given the debate topic, generate 3-5 diverse search queries using semantic under
 - Vary query angles: direct topic, related metrics, counterarguments, expert opinions
 - Do NOT hardcode search queries; derive them from the actual topic context
 
+**Domain-Aware Search (v3) / 领域感知搜索:**
+
+Read `domain` from config.json to adapt search query strategy:
+- For `tech`: include queries targeting official docs, GitHub issues, technical benchmarks
+- For `health`: include queries targeting clinical evidence, systematic reviews
+- For `finance`: include queries targeting financial data, regulatory filings
+- For general/geopolitics: current behavior (no change needed)
+
 ### Step 2: Multi-Source Search / 多来源搜索
 
 For each generated query:
@@ -74,6 +82,51 @@ For each fetched source, produce an `EvidenceItem`:
    - `reasoning`: If the snippet explains mechanisms, cites history, or analyzes trends
 6. Set `freshness_status` to `current` initially (FreshnessCheck will refine later)
 7. Record `published_at` and `retrieved_at` timestamps
+
+#### Domain-Aware Credibility (v3) / 领域感知可信度
+
+When assigning `credibility_tier`, read `config.json` for the `domain` field and apply domain-appropriate judgment:
+
+**Guiding principle / 指导原则:** Tier reflects authority IN THE RELEVANT DOMAIN, not generic media reputation.
+用领域内的权威性判断 tier，而不是通用的媒体声誉。
+
+| Domain | tier1 guidance | tier2 guidance |
+|---|---|---|
+| geopolitics | Government statements, AP/Reuters, UN reports | Major newspapers, think tanks (RAND, Brookings, IISS) |
+| tech | Official documentation, RFCs, IEEE/ACM | Reputable tech blogs (with deep analysis), conference papers |
+| health | WHO, CDC, NIH, Lancet/NEJM/BMJ | Medical school research, clinical trial databases, Cochrane |
+| finance | Central banks, SEC filings, Bloomberg/Reuters data | Research reports, industry analysis, audited financials |
+| philosophy | Primary texts, Stanford Encyclopedia of Philosophy | Academic journals, established scholars' published works |
+| culture | Primary sources, official archives | Academic publications, established cultural institutions |
+| general | Falls back to current default tiers | Falls back to current default tiers |
+
+**Critical rule / 关键规则:** This table is GUIDANCE for LLM judgment, NOT a lookup table to hardcode. The LLM should use semantic understanding of the source's authority within the domain context.
+这个表是给 LLM 判断的指导，不是硬编码查找表。LLM 应该用语义理解来判断来源在该领域的权威性。
+
+### Step 3.5: Social Media Credibility Pre-Screen (v3) / 社交媒体可信度预筛
+
+For each evidence item where `source_type = "twitter"`:
+
+Use LLM to assess the tweet/post for fake news indicators:
+
+**Check for these patterns / 检查以下特征:**
+1. Extreme emotional language without factual basis / 无事实依据的极端情绪化语言
+2. Claims without any cited sources or references / 没有引用任何来源的声明
+3. Internal contradictions within the post / 帖子内部自相矛盾
+4. Extraordinary claims without proportionate evidence / 非凡声明缺少相应的证据
+5. Account context: is the publisher described as authoritative or unknown? / 发布者是否为已知权威来源
+
+**Set `social_credibility_flag`:**
+- `likely_reliable`: No fake news indicators, source appears authoritative
+- `needs_verification`: Some indicators present, or source credibility unclear
+- `likely_unreliable`: Multiple fake news indicators, high risk of misinformation
+
+**Set `verification_priority`:**
+- `likely_unreliable` → `high` (prioritize independent verification)
+- `needs_verification` → `medium`
+- `likely_reliable` → `low`
+
+For non-Twitter sources, set these fields to `null`.
 
 ### Step 4: Deduplication / 去重
 

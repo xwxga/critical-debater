@@ -1,0 +1,12 @@
+{
+  "template_name": "Policy Analysis / 政策分析",
+  "description": "Geopolitical or policy analysis with deep evidence verification",
+  "config_overrides": {
+    "domain": "geopolitics",
+    "depth": "deep",
+    "mode": "balanced",
+    "speculation_level": "moderate",
+    "output_format": "full_report",
+    "focus_areas": ["stakeholder interests", "historical precedent", "implementation feasibility"]
+  }
+}

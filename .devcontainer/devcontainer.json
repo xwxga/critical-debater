@@ -9,7 +9,7 @@
       "ZSH_IN_DOCKER_VERSION": "1.2.0"
     }
   },
-  "runArgs": [],
+  "runArgs": ["--env-file", ".env"],
   "customizations": {
     "vscode": {
       "extensions": [

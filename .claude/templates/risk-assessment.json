@@ -1,0 +1,12 @@
+{
+  "template_name": "Risk Assessment / 风险评估",
+  "description": "Red team analysis to identify and evaluate risks",
+  "config_overrides": {
+    "domain": "general",
+    "depth": "deep",
+    "mode": "red_team",
+    "speculation_level": "exploratory",
+    "output_format": "full_report",
+    "focus_areas": ["failure modes", "cascading risks", "black swans"]
+  }
+}

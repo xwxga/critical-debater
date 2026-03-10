@@ -1,0 +1,12 @@
+{
+  "template_name": "Investment Decision / 投资决策",
+  "description": "Structured analysis for investment decisions with financial data focus",
+  "config_overrides": {
+    "domain": "finance",
+    "depth": "deep",
+    "mode": "balanced",
+    "speculation_level": "moderate",
+    "output_format": "decision_matrix",
+    "focus_areas": ["valuation", "risk factors", "market conditions", "competitive landscape"]
+  }
+}

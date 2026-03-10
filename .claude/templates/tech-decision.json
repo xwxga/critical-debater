@@ -1,0 +1,12 @@
+{
+  "template_name": "Tech Decision / 技术选型",
+  "description": "Technology comparison and selection analysis",
+  "config_overrides": {
+    "domain": "tech",
+    "depth": "standard",
+    "mode": "balanced",
+    "speculation_level": "moderate",
+    "output_format": "decision_matrix",
+    "focus_areas": ["performance", "ecosystem", "learning curve", "long-term viability"]
+  }
+}

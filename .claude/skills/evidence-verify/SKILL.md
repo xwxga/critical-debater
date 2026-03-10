@@ -7,7 +7,7 @@ description: >
   "assess evidence credibility". Cross-source verification, credibility validation, and
   independent re-search.
   跨来源验证、可信度验证和独立重新搜索。
-version: 0.1.0
+version: 0.2.0
 ---
 
 # EvidenceVerify
@@ -54,17 +54,27 @@ For **non-critical claims** (peripheral supporting points):
 
 Use LLM judgment to determine criticality based on how central the claim is to the debate.
 
-### Step 3: Twitter Signal Validation / Twitter 信号验证
+### Step 3: Twitter Signal Validation + Corroboration (v3) / Twitter 信号验证 + 关联确认
 
-If ALL evidence supporting a claim is `tier4_social` (Twitter, Reddit, forums):
-- The claim **CANNOT** receive `verified` status
-- Maximum achievable status: `unverified` with note "social-source-only"
-- To upgrade: at least one `tier1/tier2/tier3` source must independently confirm
+If ANY evidence supporting a claim has `source_type = "twitter"`:
 
-Twitter evidence CAN be used to:
-- Corroborate claims already supported by non-social sources
-- Provide real-time signal for emerging situations
-- Indicate public sentiment (but not as factual proof)
+1. **Check social_credibility_flag** (set by SourceIngest):
+   - If `likely_unreliable`: Flag claim as high verification priority. Auto-set status ceiling to `unverified` unless strong independent evidence exists.
+   - If `needs_verification`: Standard verification process, but actively search for corroboration.
+
+2. **Corroboration search** (enhanced from v2):
+   - For `verification_priority = "high"` Twitter claims: ALWAYS run an independent WebSearch query derived from the claim text
+   - Search specifically for non-social (tier1/tier2/tier3) sources that confirm or deny the claim
+   - Update the Twitter EvidenceItem's `corroboration_status`:
+     - `corroborated`: Found ≥1 independent non-social source confirming
+     - `uncorroborated`: No independent confirmation found
+     - `contradicted`: Found independent source(s) that directly contradict the claim
+
+3. **Status determination** (unchanged logic, new data):
+   - Twitter + corroborated → eligible for `verified` (if other conditions met)
+   - Twitter + uncorroborated → maximum `unverified` with note "twitter-only, uncorroborated"
+   - Twitter + contradicted → `contested` with note "twitter claim contradicted by [source]"
+   - Twitter + `likely_unreliable` + uncorroborated → `unverified` with note "flagged (suspected misinformation)"
 
 ### Step 4: Cross-Source Agreement / 跨来源一致性
 
