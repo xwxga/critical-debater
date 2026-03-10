@@ -1,0 +1,8 @@
+# Debate workspace outputs (runtime data, not source)
+debate-workspace*/
+
+# Claude plans (session-specific)
+.claude/plans/
+
+# OS
+.DS_Store
