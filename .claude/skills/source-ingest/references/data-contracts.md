@@ -22,7 +22,10 @@ An individual piece of evidence from a source.
   "hash": "<SHA-256 of snippet>",
   "credibility_tier": "tier1_authoritative | tier2_reputable | tier3_general | tier4_social",
   "freshness_status": "current | stale | timeless",
-  "evidence_track": "fact | reasoning"
+  "evidence_track": "fact | reasoning",
+  "social_credibility_flag": "likely_reliable | needs_verification | likely_unreliable | null",
+  "verification_priority": "high | medium | low",
+  "corroboration_status": "corroborated | uncorroborated | contradicted | null"
 }
 ```
 
@@ -40,6 +43,14 @@ An individual piece of evidence from a source.
 ### Evidence Track / 证据轨道
 - `fact`: Supports claims about the current state of the world / 支持关于当前世界状态的声明
 - `reasoning`: Supports mechanism explanation, historical precedent, or trend analysis / 支持机制解释、历史先例或趋势分析
+
+### Social Credibility Flag (v3) / 社交可信度标记
+- `social_credibility_flag`: Only set for `source_type = "twitter"`. LLM pre-screens for fake news patterns. For non-Twitter sources, set to `null`.
+  仅对 Twitter 来源设置。LLM 预筛假新闻特征。非 Twitter 来源设为 `null`。
+- `verification_priority`: Derived from social_credibility_flag. `likely_unreliable` → `high`, `needs_verification` → `medium`, otherwise `low`.
+  基于假新闻预筛结果推导。
+- `corroboration_status`: Set during EvidenceVerify. Tracks whether independent non-social sources confirm this evidence. For non-Twitter sources, set to `null`.
+  在 EvidenceVerify 中设置。追踪独立非社交来源是否确认。
 
 ---
 
@@ -59,9 +70,22 @@ A factual or inferential claim made by a debater.
   "status": "verified | contested | unverified | stale",
   "last_verified_at": "2026-03-09T12:00:00Z",
   "judge_note": "Judge's assessment...",
-  "mandatory_response": false
+  "mandatory_response": false,
+  "conflict_details": [
+    {
+      "source_a": {"evidence_id": "evi_xxx", "position": "Source A claims..."},
+      "source_b": {"evidence_id": "evi_yyy", "position": "Source B claims..."},
+      "divergence_point": "The specific point of disagreement...",
+      "judge_assessment": "Judge's evaluation of the conflict..."
+    }
+  ]
 }
 ```
+
+### Conflict Details (v3) / 冲突明细
+
+`conflict_details` is populated by Judge during verification when sources conflict. Allows FinalReport to explain WHY a claim is contested, not just THAT it is.
+当来源冲突时由 Judge 填充。让 FinalReport 能解释声明为何有争议，而不仅仅标记为有争议。
 
 ### Claim Status State Machine / 声明状态机
 
@@ -135,7 +159,34 @@ Structured output from a single debate turn.
       "response_text": "Addressing judge's point..."
     }
   ],
-  "new_evidence": []
+  "new_evidence": [],
+  "historical_wisdom": {
+    "weight": "advisory",
+    "references": [
+      {
+        "historical_event": "Name/description of historical event",
+        "era_context": "Historical context and background",
+        "parallel_to_current": "How this parallels the current debate topic",
+        "key_differences": "Critical structural differences from current situation",
+        "lesson_extracted": "The insight or lesson drawn",
+        "applicability_caveat": "Limitations of this historical reference"
+      }
+    ]
+  },
+  "speculative_scenarios": {
+    "weight": "exploratory",
+    "scenarios": [
+      {
+        "scenario_name": "Short descriptive name",
+        "premise": "The 'what if' starting condition",
+        "chain_of_events": "A → B → C sequence of consequences",
+        "probability_estimate": "low (<10%) | medium (10-40%) | high (>40%)",
+        "impact_if_realized": "Severity and scope of impact",
+        "early_warning_signals": ["Observable precursors to watch for"],
+        "what_would_falsify": "What would invalidate this scenario"
+      }
+    ]
+  }
 }
 ```
 
@@ -149,6 +200,27 @@ Every argument MUST contain all 5 elements. Use semantic understanding, not mech
 3. **Scenario implication / 场景推演**: What follows if the mechanism holds
 4. **Trigger conditions / 触发条件**: What would activate this scenario
 5. **Falsification conditions / 证伪条件**: What would disprove this argument
+
+### Historical Wisdom (v3) / 历史智慧
+
+Advisory section for historical references and lessons. NOT subject to verified/contested status determination.
+建议性板块，用于历史引用和教训。不受 verified/contested 状态判定约束。
+
+- `weight: "advisory"` — This content informs analysis but is not treated as factual evidence
+- Each reference MUST include `key_differences` and `applicability_caveat` (intellectual honesty requirement)
+- Unlike analogies in `arguments[]`, historical_wisdom references are not constrained by the <15% content share rule
+- 与 arguments[] 中的类比不同，historical_wisdom 不受 <15% 内容占比规则的约束
+
+### Speculative Scenarios (v3) / 推演场景
+
+Exploratory section for imaginative scenario planning. Controlled by `config.speculation_level`.
+探索性板块，用于想象力场景规划。受 `config.speculation_level` 控制。
+
+- `weight: "exploratory"` — These are thought experiments, not predictions
+- `conservative` config → this section is OMITTED entirely
+- `moderate` config → generate 1-2 evidence-grounded scenarios
+- `exploratory` config → generate 2-4 scenarios including black swans and non-linear paths
+- Every scenario MUST include `what_would_falsify` (falsifiability requirement carries over from v2)
 
 ---
 
@@ -183,9 +255,23 @@ Judge's structured output after auditing a round.
       "reason": "Why this needs response..."
     }
   ],
+  "historical_wisdom_assessment": [
+    {
+      "side": "pro | con",
+      "historical_event": "...",
+      "relevance_grade": "strong_parallel | moderate_parallel | weak_parallel",
+      "honesty_grade": "honest | partially_honest | misleading",
+      "note": "..."
+    }
+  ],
   "round_summary": "Neutral summary of key developments..."
 }
 ```
+
+### Historical Wisdom Assessment (v3) / 历史智慧评估
+
+Judge evaluates the QUALITY of historical reasoning, not whether the historical lesson supports pro or con. A well-analyzed weak parallel is better than a poorly analyzed strong one.
+Judge 评估历史推理的质量，而非历史教训支持正方还是反方。
 
 ---
 
@@ -223,9 +309,215 @@ Final synthesis output after all debate rounds.
       "reversal_trigger": "What would change conclusions...",
       "monitoring_source": "Where to watch..."
     }
+  ],
+  "evidence_diversity_assessment": {
+    "source_type_distribution": {"web": 15, "academic": 3, "twitter": 8},
+    "credibility_tier_distribution": {"tier1": 2, "tier2": 8, "tier3": 10, "tier4": 8},
+    "geographic_diversity": "assessment text...",
+    "perspective_balance": "assessment text...",
+    "diversity_warning": "warning text or null"
+  },
+  "speculative_frontier": [
+    {
+      "scenario_name": "...",
+      "proposed_by": "pro | con",
+      "premise": "...",
+      "chain_of_events": "...",
+      "probability": "...",
+      "impact": "...",
+      "early_warnings": ["..."],
+      "judge_quality_note": "..."
+    }
+  ],
+  "historical_insights": {
+    "key_parallels": ["Most relevant historical parallels and their lessons..."],
+    "conflicting_lessons": ["Where historical evidence points in different directions..."],
+    "meta_pattern": "Overarching historical pattern, if any..."
+  },
+  "executive_summary": {
+    "summary_paragraph": "One-paragraph bilingual summary...",
+    "top_verified_facts": ["..."],
+    "top_contested_points": ["..."],
+    "base_case_outlook": "...",
+    "top_watchlist_items": ["..."]
+  },
+  "decision_matrix": {
+    "dimensions": [
+      {
+        "factor": "Factor name",
+        "pro_position": "Pro's strongest point on this factor",
+        "con_position": "Con's strongest point on this factor",
+        "evidence_strength": "strong | moderate | weak",
+        "judge_note": "..."
+      }
+    ],
+    "overall_lean": "Slightly favors pro/con because...",
+    "key_uncertainty": "The factor most likely to change the conclusion...",
+    "recommendation": "Based on current evidence..."
+  },
+  "conclusion_profiles": [
+    {
+      "conclusion_id": "concl_1",
+      "conclusion_text": "Conclusion description (bilingual)",
+      "source_claims": ["clm_1_pro_1", "clm_2_con_3"],
+      "profile": {
+        "probability": {
+          "value": "high (>70%) | medium (30-70%) | low (<30%)",
+          "rationale": "Basis for probability judgment"
+        },
+        "confidence": {
+          "value": "high | medium | low",
+          "rationale": "How evidence quality affects certainty of probability judgment"
+        },
+        "consensus": {
+          "value": "high | partial | low",
+          "rationale": "Degree of disagreement between pro and con"
+        },
+        "evidence_coverage": {
+          "value": "complete | partial | sparse",
+          "gaps": "Key missing links in the evidence chain"
+        },
+        "reversibility": {
+          "value": "high | medium | low",
+          "reversal_trigger": "What new evidence/event could overturn this conclusion"
+        },
+        "validity_window": {
+          "value": "hours | days | weeks | months | indefinite",
+          "expiry_condition": "What condition would invalidate this conclusion"
+        },
+        "impact_magnitude": {
+          "value": "extreme | high | medium | low",
+          "scope": "Scope and depth of impact"
+        },
+        "causal_clarity": {
+          "value": "clear_chain | partial_chain | correlation_only",
+          "weakest_link": "Weakest link in the causal chain"
+        },
+        "actionability": {
+          "value": "directly_actionable | informational | requires_more_data",
+          "suggested_action": "Suggested action if actionable"
+        },
+        "falsifiability": {
+          "value": "easily_testable | testable_with_effort | hard_to_test",
+          "test_method": "How to verify this conclusion"
+        }
+      }
+    }
   ]
 }
 ```
+
+### Evidence Diversity Assessment (v3) / 来源多样性评估
+
+Included in every FinalReport. Analyzes the evidence store for source diversity gaps.
+每份 FinalReport 都包含。分析证据库的来源多样性缺口。
+
+### Speculative Frontier (v3) / 推演前沿
+
+Included when `config.speculation_level` is not `conservative`. Collects and deduplicates speculative scenarios from both sides across all rounds.
+当 `config.speculation_level` 不为 `conservative` 时包含。收集并去重双方在所有回合中的推演场景。
+
+### Historical Insights (v3) / 历史洞察
+
+Summarizes the most impactful historical parallels, conflicting lessons, and overarching patterns from both sides.
+汇总双方最有影响力的历史平行、冲突教训和总体模式。
+
+### Executive Summary (v3) / 执行摘要
+
+Optional condensed format. Generated when `config.output_format = "executive_summary"`. Also written to `reports/executive_summary.json`.
+可选精简格式。当 `config.output_format = "executive_summary"` 时生成。同时写入 `reports/executive_summary.json`。
+
+### Decision Matrix (v3) / 决策矩阵
+
+Optional structured decision format. Generated when `config.output_format = "decision_matrix"`. Also written to `reports/decision_matrix.json`.
+可选结构化决策格式。当 `config.output_format = "decision_matrix"` 时生成。同时写入 `reports/decision_matrix.json`。
+
+### ConclusionProfile (v3) / 结论画像
+
+Multi-dimensional characterization of each major conclusion. Goes far beyond probability alone.
+每个主要结论的多维刻画。远超概率单一维度。
+
+**10 dimensions / 10 个维度:**
+
+| Dimension / 维度 | What it measures / 衡量什么 | Why it matters / 为什么重要 |
+|---|---|---|
+| Probability / 概率 | Likelihood of event occurring / 事件发生可能性 | Most basic judgment / 最基本的判断 |
+| Confidence / 置信度 | Certainty of the probability judgment itself / 对概率判断本身的确定性 | "70% probability with low confidence" vs "70% with high confidence" mean very different things / 含义完全不同 |
+| Consensus / 共识度 | Degree of disagreement between sides / 正反双方分歧程度 | High consensus = more stable; low consensus = more contested / 高共识更稳固，低共识更有争议 |
+| Evidence Coverage / 证据完整度 | Completeness of evidence chain / 证据链完整性 | Reveals blind spots / 发现盲区 |
+| Reversibility / 可逆性 | How easily new evidence could overturn conclusion / 新证据推翻结论的难易度 | High reversibility = unstable, needs monitoring / 高可逆 = 不稳定，需持续关注 |
+| Validity Window / 时效窗口 | How long the conclusion remains valid / 结论有效期 | Some conclusions expire in 48 hours / 有些结论 48 小时后就可能过时 |
+| Impact Magnitude / 影响幅度 | Severity if realized / 如果发生的影响大小 | Low probability + high impact = black swan / 低概率高影响 = 黑天鹅型 |
+| Causal Clarity / 因果清晰度 | Completeness of causal chain / 因果链完整性 | Distinguishes correlation from causation / "相关性" vs "因果性" 的区分 |
+| Actionability / 可操作性 | Whether it can guide decisions / 能否指导行动 | Decision-makers need actionable conclusions / 决策者需要可操作结论 |
+| Falsifiability / 可证伪性 | How easily it can be tested / 验证难易度 | Unfalsifiable conclusions have limited value / 不可证伪的结论价值有限 |
+
+**Key rule / 关键规则:** Each dimension uses LLM semantic judgment, NOT mechanical scoring.
+每个维度用 LLM 语义判断，不要用机械评分。
+
+---
+
+## DebateConfig
+
+Configuration for a debate session. Written to `config.json` in the workspace root.
+辩论会话配置。写入工作区根目录的 `config.json`。
+
+```json
+{
+  "topic": "The debate topic",
+  "rounds": 3,
+  "domain": "geopolitics | tech | health | finance | philosophy | culture | general",
+  "depth": "quick | standard | deep",
+  "evidence_scope": "web_only | academic_included | user_provided | mixed",
+  "output_format": "full_report | executive_summary | decision_matrix",
+  "speculation_level": "conservative | moderate | exploratory",
+  "language": "en | zh | bilingual",
+  "focus_areas": ["user-defined dimensions to focus on"],
+  "mode": "balanced | red_team | pre_mortem",
+  "pdf_outputs": ["executive_summary"],
+  "pdf_language": "bilingual",
+  "status": "initialized | in_progress | complete"
+}
+```
+
+### Field Documentation / 字段说明
+
+- `domain`: The subject domain of the debate. Defaults to `"general"` if not provided. When `"general"`, LLM infers the most appropriate domain from the topic text.
+  辩论的主题领域。未提供时默认为 `"general"`。为 `"general"` 时，LLM 从话题文本推断最合适的领域。
+
+- `depth`: Controls search and argument intensity. / 控制搜索和论证深度。
+  - `quick`: 3 search queries, 2 arguments per turn, lighter verification / 3 条搜索查询，每回合 2 个论点，较轻验证
+  - `standard`: 5 search queries, 2-4 arguments per turn, standard verification / 5 条搜索查询，每回合 2-4 个论点，标准验证
+  - `deep`: 8 search queries, 3-5 arguments per turn, thorough verification / 8 条搜索查询，每回合 3-5 个论点，深入验证
+
+- `evidence_scope`: Controls what types of evidence sources to include. Defaults to `"web_only"`.
+  控制包含哪些类型的证据来源。默认为 `"web_only"`。
+
+- `output_format`: Controls the final report format. Defaults to `"full_report"`.
+  控制最终报告格式。默认为 `"full_report"`。
+
+- `speculation_level`: Controls whether `speculative_scenarios` section is generated in DebateTurn (Phase 3). Defaults to `"moderate"`.
+  控制 DebateTurn 中是否生成 `speculative_scenarios` 部分。默认为 `"moderate"`。
+  - `conservative`: No speculative scenarios generated / 不生成推演场景
+  - `moderate`: 1-2 evidence-grounded scenarios / 1-2 个基于证据的场景
+  - `exploratory`: 2-4 scenarios including black swans / 2-4 个场景，含黑天鹅
+
+- `mode`: Controls debate structure. Defaults to `"balanced"`.
+  控制辩论结构。默认为 `"balanced"`。
+  - `balanced`: Standard pro/con debate / 标准正反方辩论
+  - `red_team`: Con becomes Red Team (risks), Pro becomes Blue Team (mitigations) / Con 变为红队（风险），Pro 变为蓝队（缓解）
+  - `pre_mortem`: Assumes failure and works backward / 假设失败并反向推导
+
+- `pdf_outputs`: List of PDF reports to generate. Defaults to `["executive_summary"]` (always included, cannot be disabled). Additional options: `"full"`, `"decision_matrix"`, `"red_team"`.
+  要生成的 PDF 报告列表。默认 `["executive_summary"]`（始终包含，不可禁用）。
+
+- `pdf_language`: Language for PDF output. Defaults to `"bilingual"`. Follows `language` setting.
+  PDF 输出语言。默认 `"bilingual"`，跟随 `language` 设置。
+
+- `language`: Output language. Defaults to `"bilingual"`. / 输出语言。默认 `"bilingual"`。
+
+- `focus_areas`: User-defined dimensions to prioritize in analysis. Defaults to `[]`.
+  用户定义的重点分析维度。默认为 `[]`。
 
 ---
 

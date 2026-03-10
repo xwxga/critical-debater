@@ -5,6 +5,7 @@
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-10 16:30 | Claude | 合并全局 CLAUDE.md 规则：语义优先、禁止硬编码、变更日志规则 / Merged global CLAUDE.md rules: semantic-first, no hardcoded examples, changelog rules |
 | 2026-03-10 | Claude | 添加 v3 升级路线图引用 / Added v3 upgrade roadmap reference |
 | 2026-03-09 | Claude | 初始创建：项目指令、工作方式、证据规则、agent 隔离、脚本引用 / Initial creation |
 
@@ -24,6 +25,49 @@ v3 task prompts: `docs/tasks/phase-{1,2,3,4}-*.md`
 1. **LLM first / LLM 优先** — 阅读、判断、总结、分类、提取、论证构建、因果审计 → 全部用 LLM
 2. **Existing skill second / 现有 skill 其次** — 复用项目内 8 个 skill + Claude Code 内建工具（WebSearch, WebFetch, Agent tool）
 3. **Deterministic code last / 确定性代码最后** — 仅用于 `scripts/` 中的操作：workspace 初始化、JSON 验证、hash、审计日志追加
+
+Do NOT default to writing Python scripts for text tasks. Do NOT build static rule-based tools when LLM judgment is better.
+不要默认用脚本处理文本任务。不要在 LLM 判断更好时构建静态规则工具。
+
+## Semantic First, Never Mechanical / 语义优先，拒绝机械化
+
+When generating intermediate artifacts (subtitles, summaries, segments, etc.), ALWAYS use natural semantic understanding first — then apply constraints.
+生成中间产物（字幕、摘要、片段等）时，**永远先用自然语义理解，再施加约束**。
+
+- NEVER use mechanical numeric rules (e.g. "5-15 words per entry") to split, merge, or chunk text. These produce mid-phrase breaks and garbage output.
+  **绝不**用机械数字规则（如"每条5-15词"）来拆分、合并、分块文本。这会产生断在短语中间的垃圾输出。
+- ALWAYS let LLM understand the full meaning first, then break at natural boundaries (sentence ends, speaker turns, logical pauses).
+  **永远**让 LLM 先理解完整语义，再在自然边界处断开（句子结尾、说话人切换、逻辑停顿）。
+- Numeric limits (word count, duration) are soft guidelines for the LLM, not hard mechanical rules for code to enforce.
+  数字限制（词数、时长）是给 LLM 的软性参考，不是给代码强制执行的硬规则。
+
+## No Hardcoded Examples / 不要硬编码特例
+
+Never put session-specific or project-specific values into prompts or code as hardcoded examples. Write generic instructions that let LLM use context to figure it out. Hardcoded examples make code non-reusable and break on different inputs.
+不要把当前会话或项目特有的值硬编码到 prompt 或代码中作为示例。写通用指令，让 LLM 根据上下文自行判断。硬编码的特例让代码无法复用，换个输入就会失效。
+
+## Document Changelog Rule / 文档变更日志规则
+
+Every time you update a document file (`.md`, design docs, architecture docs, project masters, etc.), you MUST add a changelog entry at the **top of the file** (right after the title).
+每次更新文档类文件时，**必须**在文件顶部（标题之后）添加变更日志条目。
+
+Format / 格式:
+```
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| newest first... |
+```
+
+Timestamp rules / 时间戳规则:
+- Same-day updates: precision to **minute** (e.g. `2026-03-06 03:19`)
+  日内更新：精确到**分钟**
+- Cross-day updates: precision to **day** (e.g. `2026-03-06`)
+  跨日更新：精确到**日**
+
+New entries go at the top of the table (newest first). Never remove old entries.
+新条目放表格最上方（最新优先）。不要删除旧条目。
 
 ## Evidence Rules / 证据规则
 

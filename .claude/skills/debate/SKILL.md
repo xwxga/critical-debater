@@ -5,7 +5,7 @@ description: >
   "debate", "start a debate", "run a debate on", "argue about", or provides
   a topic they want analyzed from multiple perspectives with evidence verification.
   启动多agent辩论系统。
-version: 0.1.0
+version: 0.2.0
 ---
 
 # /debate — Multi-Agent Debate System
@@ -20,11 +20,46 @@ The user invoked this command with: $ARGUMENTS
 
 Parse the arguments:
 - **First argument**: debate topic (required, quoted string) / 辩论话题（必需）
-- **Second argument**: number of rounds (optional, default 3) / 回合数（可选，默认 3）
+- **Remaining arguments**: optional flags in any order / 可选标志，顺序不限
+
+Supported flags:
+- `--domain <value>`: geopolitics | tech | health | finance | philosophy | culture | general (default: auto-infer from topic)
+- `--depth <value>`: quick | standard | deep (default: standard)
+- `--rounds <N>`: number of rounds (default: 3)
+- `--mode <value>`: balanced | red_team | pre_mortem (default: balanced)
+- `--speculation <value>`: conservative | moderate | exploratory (default: moderate)
+- `--output <value>`: full_report | executive_summary | decision_matrix (default: full_report)
+- `--language <value>`: en | zh | bilingual (default: bilingual)
+- `--focus <value>`: comma-separated focus areas (default: none)
+- `--template <name>`: load a preset template from `.claude/templates/<name>.json`
+- `--pdf <value>`: Comma-separated list of additional PDF outputs to generate.
+  Default: executive_summary (ALWAYS generated, cannot be disabled)
+  Additional options: full, decision_matrix, red_team
+  Example: `--pdf full,decision_matrix` → generates executive_summary PDF + full report PDF + decision matrix PDF
 
 Examples:
-- `/debate "Bitcoin will surpass gold as store of value"` → topic, rounds = 3
-- `/debate "Remote work increases productivity" 5` → topic, rounds = 5
+- `/debate "Bitcoin vs Gold as store of value"` → all defaults, domain auto-inferred as finance
+- `/debate "React vs Vue" --domain tech --depth deep --speculation exploratory`
+- `/debate "Is remote work productive?" --mode red_team --output executive_summary`
+- `/debate "中东局势" --rounds 5 --focus "oil prices,shipping routes"`
+- `/debate "Should we invest in NVIDIA?" --template investment`
+- `/debate "Should we invest in NVIDIA?" --template investment --depth quick`
+
+**Auto-inference / 自动推断:** If `--domain` is not provided, use LLM to infer the most appropriate domain from the topic text. Include the inferred domain in the config.json passed to the orchestrator.
+
+### Template Support (v3) / 模板支持
+
+If the user provides `--template <name>`:
+1. Read `.claude/templates/<name>.json`
+2. Apply `config_overrides` as default values
+3. User-provided flags override template defaults
+4. If template file not found, warn user and proceed with standard defaults
+
+Examples:
+- `/debate "Should we invest in NVIDIA?" --template investment`
+  → Applies investment template: domain=finance, depth=deep, output=decision_matrix
+- `/debate "Should we invest in NVIDIA?" --template investment --depth quick`
+  → Same as above but overrides depth to quick
 
 ## Execution / 执行
 
@@ -37,7 +72,10 @@ Run a full multi-agent debate.
 
 Topic: <parsed topic>
 Rounds: <parsed rounds>
+Config: <all parsed config fields as JSON>
 Project root: <current working directory>
+
+Write the full config to debate-workspace/config.json before proceeding.
 
 Follow your system prompt to execute all 4 phases:
 1. Initialize workspace (run scripts/init-workspace.sh, gather evidence via WebSearch/WebFetch)
@@ -54,6 +92,28 @@ Present the final report in a readable, bilingual (Chinese + English) format to 
 ```
 
 2. When the orchestrator completes, present its final report output to the user.
+
+### Mode: `red_team`
+
+When `config.mode = "red_team"`, the debate structure changes:
+
+- **Con agent becomes Red Team**: Instead of opposing a motion, it actively searches for risks, vulnerabilities, failure modes, and blind spots in the topic/plan.
+- **Pro agent becomes Blue Team**: Instead of supporting a motion, it defends against Red Team attacks with mitigations, contingency plans, and risk acceptance rationale.
+- **Judge agent**: Evaluates the SEVERITY and LIKELIHOOD of each identified risk, and the FEASIBILITY of proposed mitigations.
+
+**Orchestrator prompt adjustment:**
+```
+Run a Red Team analysis.
+
+Topic: <parsed topic>
+Mode: red_team
+...
+
+IMPORTANT MODE CHANGE:
+- Con agent's role: RED TEAM — find every possible risk, failure mode, vulnerability, and blind spot. Be creative and thorough. Think about edge cases, cascading failures, adversarial scenarios, and black swan events.
+- Pro agent's role: BLUE TEAM — for each risk identified by Red Team, propose mitigations, assess residual risk, and provide risk acceptance rationale where mitigation is impractical.
+- Judge's role: Assess each risk's severity (critical/high/medium/low) and likelihood (high/medium/low). Evaluate whether Blue Team's mitigations are feasible and sufficient.
+```
 
 ## Notes / 注意事项
 

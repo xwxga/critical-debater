@@ -7,7 +7,7 @@ description: >
   independent second-pass verification", or "evaluate reasoning quality from both sides".
   Independent verification, causal chain audit, and structured ruling generation.
   独立验证、因果链审计和结构化裁定生成。
-version: 0.1.0
+version: 0.2.0
 ---
 
 # JudgeAudit
@@ -33,7 +33,7 @@ Independent verification, causal chain audit, analogy validation, and structured
 ## Output / 输出
 
 - `JudgeRuling` JSON written to rounds/round_N/judge_ruling.json
-- Contains: verification_results, causal_validity_flags, mandatory_response_points, round_summary
+- Contains: verification_results, causal_validity_flags, mandatory_response_points, historical_wisdom_assessment, round_summary
 
 ## Core Workflow / 核心工作流
 
@@ -52,6 +52,10 @@ For each factual claim from BOTH sides:
 4. Use the EvidenceVerify skill with `independent_search = true`
 5. Use FreshnessCheck to verify timeliness of fact-track claims
 6. Produce a `verification_result` entry with recommended status transition
+6b. When independent verification reveals conflicting sources for a claim:
+   - Document the conflict in the verification_result's `reasoning` field
+   - Structure it as: "Source A (evi_xxx) states [position]. Source B (evi_yyy) states [position]. Divergence point: [specific disagreement]."
+   - This structured reasoning will be extracted by ClaimLedgerUpdate into `conflict_details`
 
 **Priority**: Focus verification effort on:
 - Claims central to the argument (high impact)
@@ -89,6 +93,45 @@ Apply AnalogySafeguard rules to all historical/classical analogies:
 2. Assess content share proportion
 3. Mark invalid analogies as "heuristic only" in the ruling
 
+### Step 3.5: Historical Wisdom Assessment (v3) / 历史智慧评估
+
+For each `historical_wisdom` reference from both sides:
+
+1. **Structural relevance check**: Does the historical case genuinely parallel the current topic, or is it a superficial connection?
+2. **Difference honesty check**: Are the `key_differences` genuinely acknowledged, or minimized to make the parallel seem stronger?
+3. **Lesson validity check**: Does the extracted lesson logically follow from the historical case?
+4. **Cross-side comparison**: If both sides cite conflicting historical lessons, note the tension
+
+Produce `historical_wisdom_assessment` in JudgeRuling:
+```json
+{
+  "historical_wisdom_assessment": [
+    {
+      "side": "pro | con",
+      "historical_event": "...",
+      "relevance_grade": "strong_parallel | moderate_parallel | weak_parallel",
+      "honesty_grade": "honest | partially_honest | misleading",
+      "note": "..."
+    }
+  ]
+}
+```
+
+**Key principle / 关键原则:** Judge evaluates the QUALITY of historical reasoning, not whether the historical lesson supports pro or con. A well-analyzed weak parallel is better than a poorly analyzed strong one.
+Judge 评估历史推理的质量，而非历史教训支持正方还是反方。
+
+### Step 3.6: Speculative Scenarios Review (v3) / 推演场景审查
+
+For each `speculative_scenario` from both sides:
+
+1. **Internal consistency**: Does the chain of events make causal sense?
+2. **Probability calibration**: Is the probability estimate reasonable given the premise?
+3. **Falsifiability**: Is `what_would_falsify` genuinely testable?
+4. **Novelty**: Does this scenario add new insight, or just restate existing arguments as "what if"?
+
+Do NOT verify or score speculative scenarios — they are by definition unverifiable. Instead, note quality of reasoning.
+不要验证或评分推演场景 — 它们本质上不可验证。仅评估推理质量。
+
 ### Step 4: Mandatory Response Check / 必答点回应检查
 
 If this is round 2+, verify that both sides addressed the previous round's mandatory response points:
@@ -122,6 +165,15 @@ Write a neutral, balanced summary of the round:
 - Which claims were verified, contested, or remain unverified
 - The most important developments in this round
 - No scoring, no preference — evaluate REASONING QUALITY, not which conclusion is "right"
+
+**Conclusion Profile Data Notes (v3) / 结论画像数据备注:**
+
+For each claim evaluated in this round, note in verification_results:
+- Whether the causal chain is clear or has gaps (feeds into `causal_clarity`)
+- Whether the claim has strong falsification conditions (feeds into `falsifiability`)
+- How much new evidence would be needed to reverse the status (feeds into `reversibility`)
+
+These notes will be consumed by FinalSynthesis when building Conclusion Profiles.
 
 ### Step 7: Produce JudgeRuling JSON / 生成 JudgeRuling JSON
 

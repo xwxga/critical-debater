@@ -4,5 +4,8 @@ debate-workspace*/
 # Claude plans (session-specific)
 .claude/plans/
 
+# Environment secrets
+.env
+
 # OS
 .DS_Store
