@@ -203,12 +203,11 @@ def init_styles():
 # Helpers
 # ═════════════════════════════════════════════════════════════
 
-def truncate(text, max_len=80):
-    """Truncate text with ellipsis."""
+def safe_str(text):
+    """Convert to string safely. No truncation — let reportlab Paragraph handle wrapping."""
     if not text:
         return ""
-    text = str(text)
-    return text if len(text) <= max_len else text[:max_len - 1] + "…"
+    return str(text)
 
 
 def make_table(data, col_widths, extra_styles=None):
@@ -268,7 +267,7 @@ def build_basic_info_table(story, config, final_report):
     vf = final_report.get("verified_facts", [])
     if vf:
         first = vf[0]
-        background = truncate(first if isinstance(first, str) else first.get("fact", str(first)), 120)
+        background = safe_str(first if isinstance(first, str) else first.get("fact", str(first)))
     else:
         background = ""
 
@@ -313,16 +312,16 @@ def build_round_overview_table(story, rounds_data):
         cn = CN_NUMS.get(r, str(r))
 
         pro_claims = "<br/>".join(
-            f"{CIRCLED_NUMS[i]} {esc(truncate(a.get('claim_text', ''), 55))}"
+            f"{CIRCLED_NUMS[i]} {esc(safe_str(a.get('claim_text', '')))}"
             for i, a in enumerate(pro.get("arguments", []))
             if i < len(CIRCLED_NUMS)
         )
         con_claims = "<br/>".join(
-            f"{CIRCLED_NUMS[i]} {esc(truncate(a.get('claim_text', ''), 55))}"
+            f"{CIRCLED_NUMS[i]} {esc(safe_str(a.get('claim_text', '')))}"
             for i, a in enumerate(con.get("arguments", []))
             if i < len(CIRCLED_NUMS)
         )
-        judge_summary = esc(truncate(judge.get("round_summary", ""), 200))
+        judge_summary = esc(safe_str(judge.get("round_summary", "")))
 
         rows.append([
             Paragraph(f"R{r}", ST["cell"]),
@@ -350,8 +349,8 @@ def build_conclusions_table(story, final_report):
     pc = final_report.get("probable_conclusions", [])
     cp = final_report.get("contested_points", [])
 
-    def summarize_list(items, max_items=3, max_len=80):
-        parts = [esc(truncate(str(item), max_len)) for item in items[:max_items]]
+    def summarize_list(items, max_items=3):
+        parts = [esc(safe_str(item)) for item in items[:max_items]]
         if len(items) > max_items:
             parts.append(f"... ({len(items)} total)")
         return "<br/>".join(parts)
@@ -389,8 +388,8 @@ def build_watchlist_table(story, final_report):
     rows = [header]
     for wl in watchlist:
         rows.append([
-            Paragraph(esc(truncate(wl.get("item", ""), 80)), ST["cell"]),
-            Paragraph(esc(truncate(wl.get("reversal_trigger", ""), 120)), ST["cell_sm"]),
+            Paragraph(esc(safe_str(wl.get("item", ""))), ST["cell"]),
+            Paragraph(esc(safe_str(wl.get("reversal_trigger", ""))), ST["cell_sm"]),
         ])
 
     col_widths = [0.35 * CONTENT_W, 0.65 * CONTENT_W]
@@ -464,7 +463,7 @@ def build_round_detail(story, round_num, pro, con, judge, is_first=True):
 
     for side, arg, opponent, j in all_args:
         claim_id = arg.get("claim_id", "")
-        claim_text = truncate(arg.get("claim_text", ""), 70)
+        claim_text = safe_str(arg.get("claim_text", ""))
 
         attackers = []
         attack_details = []
@@ -476,14 +475,14 @@ def build_round_detail(story, round_num, pro, con, judge, is_first=True):
             if target == claim_id or _claim_matches(target, side, arg, pro, con):
                 opp_label = "反方" if side == "正方" else "正方"
                 attackers.append(red_marker(f"{opp_label}反驳"))
-                attack_details.append(truncate(reb.get("rebuttal_text", ""), 90))
+                attack_details.append(safe_str(reb.get("rebuttal_text", "")))
 
         # Judge causal validity flags
         for flag in j.get("causal_validity_flags", []):
             if flag.get("claim_id") == claim_id or _claim_matches(flag.get("claim_id", ""), side, arg, pro, con):
                 sev = flag.get("severity", "")
                 attackers.append(orange_marker(f"裁判质疑 {sev}"))
-                attack_details.append(truncate(flag.get("issue", ""), 90))
+                attack_details.append(safe_str(flag.get("issue", "")))
 
         # Judge verification results
         for vr in j.get("verification_results", []):
@@ -491,7 +490,7 @@ def build_round_detail(story, round_num, pro, con, judge, is_first=True):
                 status = vr.get("new_status", "")
                 if status in ("contested", "stale"):
                     attackers.append(orange_marker(f"判定 {status}"))
-                judge_says.append(truncate(vr.get("reasoning", ""), 120))
+                judge_says.append(safe_str(vr.get("reasoning", "")))
 
         attackers_text = "<br/>".join(attackers) if attackers else "—"
         details_text = "<br/>".join(esc(d) for d in attack_details) if attack_details else "—"
