@@ -7,7 +7,14 @@ description: >
   independent second-pass verification", or "evaluate reasoning quality from both sides".
   Independent verification, causal chain audit, and structured ruling generation.
   独立验证、因果链审计和结构化裁定生成。
-version: 0.2.0
+version: 0.3.0
+license: MIT-0
+metadata:
+  openclaw:
+    requires:
+      bins: [bash, jq]
+    homepage: "https://github.com/xwxga/insight-debator"
+    emoji: "⚖️"
 ---
 
 # JudgeAudit

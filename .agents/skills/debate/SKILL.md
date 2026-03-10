@@ -4,8 +4,15 @@ description: >
   Start a multi-agent debate on any topic. Use this skill when the user says
   "debate", "start a debate", "run a debate on", "argue about", or provides
   a topic they want analyzed from multiple perspectives with evidence verification.
-  启动多agent辩论系统。
-version: 0.2.0
+  启动多agent辩论系统，支持证据验证、因果链分析和结构化裁定。
+version: 0.3.0
+license: MIT-0
+metadata:
+  openclaw:
+    requires:
+      bins: [bash, jq, python3, shasum]
+    homepage: "https://github.com/xwxga/insight-debator"
+    emoji: "🏛️"
 ---
 
 # /debate — Multi-Agent Debate System
@@ -65,7 +72,7 @@ Examples:
 
 Launch the `debate-orchestrator` agent to drive the entire workflow:
 
-1. Use the Agent tool to spawn a `debate-orchestrator` subagent with this prompt:
+1. Spawn a `debate-orchestrator` subagent with this prompt:
 
 ```
 Run a full multi-agent debate.
@@ -84,7 +91,7 @@ Follow your system prompt to execute all 4 phases:
 4. Offer scheduled refresh setup
 
 Key references:
-- Data contracts: .claude/skills/source-ingest/references/data-contracts.md
+- Data contracts: .agents/skills/_shared/references/data-contracts.md
 - Project rules: .claude/CLAUDE.md
 - Scripts: scripts/init-workspace.sh, scripts/validate-json.sh, scripts/hash-snippet.sh, scripts/append-audit.sh
 
@@ -118,8 +125,7 @@ IMPORTANT MODE CHANGE:
 ## Notes / 注意事项
 
 - The debate runs sequentially within each round: Pro → Con → Judge
-- Each agent runs as an isolated subagent via the Agent tool
-- Pro and Con use Sonnet for cost efficiency; Judge uses Opus for verification accuracy
+- Each agent runs as an isolated subagent
 - All state is persisted to `debate-workspace/` as JSON files
 - The system guarantees real-time information access (can fetch data from last 24 hours)
 - Evidence chains may span any timeframe — historical evidence is valid

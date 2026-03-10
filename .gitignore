@@ -10,5 +10,14 @@ debate-workspace*/
 # Environment secrets
 .env
 
+# Node.js (legacy pdfkit, no longer used)
+node_modules/
+package.json
+package-lock.json
+
+# Downloaded font files (runtime artifacts)
+*.otf
+*.ttf
+
 # OS
 .DS_Store

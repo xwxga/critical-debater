@@ -5,6 +5,7 @@
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-10 18:57 | Claude | Skill 跨平台迁移：skills 从 .claude/skills/ 移至 .agents/skills/，symlink 回 .claude/skills/，升级 frontmatter v0.3.0，兼容 ClawHub/OpenClaw/skills.sh / Cross-platform skill migration: canonical location moved to .agents/skills/, symlinked back, frontmatter upgraded to v0.3.0 |
 | 2026-03-10 16:30 | Claude | 合并全局 CLAUDE.md 规则：语义优先、禁止硬编码、变更日志规则 / Merged global CLAUDE.md rules: semantic-first, no hardcoded examples, changelog rules |
 | 2026-03-10 | Claude | 添加 v3 升级路线图引用 / Added v3 upgrade roadmap reference |
 | 2026-03-09 | Claude | 初始创建：项目指令、工作方式、证据规则、agent 隔离、脚本引用 / Initial creation |
@@ -13,12 +14,18 @@
 
 ## Project Overview / 项目概述
 
-Multi-agent debate system with 4 agents (Pro, Con, Judge, Orchestrator), 8 skills, and file-based state management.
-多 agent 辩论系统：4 个 agent、8 个 skill、基于文件的状态管理。
+Multi-agent debate system with 4 agents (Pro, Con, Judge, Orchestrator), 9 skills, and file-based state management.
+多 agent 辩论系统：4 个 agent、9 个 skill、基于文件的状态管理。
 
 Design spec: `docs/debate_system_v2.md`
 v3 upgrade roadmap: `docs/upgrade-roadmap-v3.md`
 v3 task prompts: `docs/tasks/phase-{1,2,3,4}-*.md`
+
+### Skill Layout / Skill 目录结构
+- **Canonical location / 规范位置**: `.agents/skills/<name>/SKILL.md` (cross-platform, compatible with ClawHub/OpenClaw/skills.sh)
+- **Claude Code access / Claude Code 访问**: `.claude/skills/<name>` → symlink to `.agents/skills/<name>`
+- **Shared resources / 共享资源**: `.agents/skills/_shared/references/data-contracts.md`
+- **Setup script / 设置脚本**: `scripts/setup-skill-symlinks.sh` (creates .claude/skills/ symlinks, idempotent)
 
 ## Working Approach / 工作方式
 
@@ -110,10 +117,12 @@ Observed facts → Mechanism → Scenario implication → Trigger conditions →
 | `scripts/validate-json.sh <file> <schema_type>` | 验证 JSON 必需字段 |
 | `scripts/hash-snippet.sh <text>` | SHA-256 hash |
 | `scripts/append-audit.sh <audit_file> <json_line>` | 原子追加 JSONL |
+| `scripts/setup-skill-symlinks.sh` | 创建 .claude/skills/ → .agents/skills/ 的 symlink |
 
 ## Data Contracts / 数据契约
 
-See `skills/source-ingest/references/data-contracts.md` for all JSON schemas.
+See `.agents/skills/_shared/references/data-contracts.md` for all JSON schemas.
+(Also accessible via symlink: `.claude/skills/source-ingest/references/data-contracts.md`)
 
 ## Bilingual / 双语
 

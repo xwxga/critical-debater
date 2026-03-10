@@ -5,12 +5,25 @@ description: >
   "synthesize all rounds into a conclusion", "create the final output with watchlist and
   scenario outlook", "produce the debate summary", or "compile verified facts, contested
   points, and recommendations". Generates the final debate report from all rounds' data.
-  从所有回合数据生成最终辩论报告。
-version: 0.2.0
+  从所有回合数据生成最终辩论报告，含结论画像和 PDF 输出。
+version: 0.3.0
+license: MIT-0
+metadata:
+  openclaw:
+    requires:
+      bins: [bash, jq, python3]
+    homepage: "https://github.com/xwxga/insight-debator"
+    emoji: "📊"
 ---
 
 # FinalSynthesis
 # 最终综合
+
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| 2026-03-10 19:40 | Claude | Step 6 PDF layout: 从页面式改为表格驱动布局 + 添加 Python fallback / Replaced page-by-page layout with table-driven layout + added Python fallback |
 
 Generate the final debate report with verified facts, probable conclusions, contested points, scenario outlook, and 24h watchlist.
 生成包含已验证事实、可能结论、争议点、情景展望和 24h 监控清单的最终辩论报告。
@@ -277,51 +290,29 @@ Use the `pdf` skill (anthropic-skills:pdf) to generate formatted PDF reports.
 
 #### Default: Executive Summary PDF (ALWAYS generated)
 
-Generate a professionally formatted PDF with the following structure (minimum 5 pages):
+Generate a table-driven, information-dense PDF with the following structure:
 
-**Page 1: Title Page / 标题页**
-- Debate topic (bilingual)
-- Date and total rounds
-- Domain and mode
+**Part 1: Executive Summary (1-2 pages)**
+- 基本信息 table: 辩题, 轮次, 模型, 背景
+- 三轮辩论核心交锋 table: one row per round with 正方/反方核心论点 + 裁判裁定
+- 最终结论 table: 已验证事实/可能结论/争议要点 with counts and content
+- 24小时监控清单 table: 监控项 + 逆转触发条件
+- 总判断 highlighted box: base case assessment
 
-**Page 2-3: Key Findings / 核心发现**
-- Verified facts table (columns: Fact | Evidence Sources | Confidence)
-- Probable conclusions with confidence qualifiers
-- Top contested points with both sides' positions
-- Conclusion Profile display for each major conclusion (top 4-5 dimensions in compact table/label format):
-```
-Conclusion: "中东局势大概率升级 / Middle East escalation is highly probable"
-┌─────────────────────────────────────────────────────┐
-│ 概率 Probability: HIGH    置信度 Confidence: MEDIUM  │
-│ 共识度 Consensus: LOW     可逆性 Reversibility: HIGH │
-│ 时效窗口 Validity: 48h    影响 Impact: EXTREME       │
-│ 证据完整度 Coverage: 75%  可操作性: INFORMATIONAL     │
-└─────────────────────────────────────────────────────┘
-```
+**Part 2: Round Details (1 page per round)**
+- Legend: [R] 被对方反驳 [J] 被裁判质疑 [X] 被事实推翻
+- Per-round exchange table: 原始论点 | 谁的 | 被谁打 | 怎么打的 | 裁判怎么说
 
-**Page 4: Scenario Outlook / 情景展望**
-- Base case description
-- Upside/downside triggers table (columns: Trigger | Likelihood | Impact)
-- Falsification conditions
-
-**Page 5: Watchlist & Historical Insights / 监控清单与历史洞察**
-- 24h watchlist table (columns: Item | Reversal Trigger | Monitoring Source)
-- Key historical parallels (from historical_wisdom, if Phase 3 enabled)
-- Speculative frontier highlights (if speculation_level != conservative)
-
-**Page 6+ (if content warrants): Evidence Appendix / 证据附录**
-- Evidence diversity assessment
-- Source type distribution chart (text-based table)
-- Conflict details for contested claims
-
-**PDF formatting requirements / PDF 格式要求:**
-- Use tables for structured data (NOT paragraph text for tabular information)
-- Bilingual headers: Chinese first, English second
-- Professional font, clean layout
-- Page numbers in footer
-- Include debate metadata in header (topic, date, domain)
+**Style: 表格优先、信息压缩、中文优先、无花哨封面**
 
 Write to: `reports/executive_summary.pdf`
+
+#### Fallback: Python PDF Script / 备用：Python PDF 脚本
+
+If the `pdf` skill is not available or fails:
+1. Run: `python3 scripts/generate_debate_pdf.py <workspace_path> executive_summary.pdf`
+2. Verify output exists in `<workspace>/reports/executive_summary.pdf`
+3. If Python script also fails, log error and continue — JSON reports are the primary output
 
 #### Optional: Additional PDF Outputs
 

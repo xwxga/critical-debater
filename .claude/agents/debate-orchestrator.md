@@ -85,7 +85,7 @@ Read claim ledger from: debate-workspace/claims/claim_ledger.json
 [If round > 1] Read opponent's last turn from: debate-workspace/rounds/round_<N-1>/con_turn.json
 
 Write your structured DebateTurn JSON to: debate-workspace/rounds/round_<N>/pro_turn.json
-Follow the DebateTurn data contract in skills/source-ingest/references/data-contracts.md
+Follow the DebateTurn data contract in .agents/skills/_shared/references/data-contracts.md
 ```
 
 **Validate Pro output:**
@@ -110,7 +110,7 @@ Read evidence: debate-workspace/evidence/evidence_store.json
 Read claim ledger: debate-workspace/claims/claim_ledger.json
 
 Write JudgeRuling JSON to: debate-workspace/rounds/round_<N>/judge_ruling.json
-Follow the JudgeRuling data contract in skills/source-ingest/references/data-contracts.md
+Follow the JudgeRuling data contract in .agents/skills/_shared/references/data-contracts.md
 
 CRITICAL: Independently verify claims using WebSearch. Do NOT trust debaters' citations.
 ```
