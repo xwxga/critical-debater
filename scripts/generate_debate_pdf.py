@@ -144,6 +144,8 @@ def register_fonts():
 
     print(f"Using font: {font_path}")
     pdfmetrics.registerFont(TTFont(FONT_NAME, font_path))
+    # Note: Same font for bold — most CJK TTF fonts don't ship a separate bold weight.
+    # reportlab uses synthetic bold via <b> tag, which is acceptable for table headers.
     pdfmetrics.registerFont(TTFont(FONT_NAME_BOLD, font_path))
     return True
 
@@ -262,17 +264,21 @@ def build_basic_info_table(story, config, final_report):
     round_count = config.get("round_count", 0)
     created_at = config.get("created_at", "")[:10]
 
-    # Background from first verified fact
+    # Background from first verified fact (may be string or dict)
     vf = final_report.get("verified_facts", [])
-    background = truncate(vf[0], 120) if vf else ""
+    if vf:
+        first = vf[0]
+        background = truncate(first if isinstance(first, str) else first.get("fact", str(first)), 120)
+    else:
+        background = ""
 
     info_rows = [
         ("辩题 Topic", topic),
         ("轮次 Rounds", f"{round_count} 轮"),
         ("日期 Date", created_at),
-        ("正方 Pro", "Claude Sonnet（立场：支持）"),
-        ("反方 Con", "Claude Sonnet（立场：反对）"),
-        ("裁判 Judge", "Claude Opus（独立验证）"),
+        ("正方 Pro", config.get("pro_model", "辩论正方 Pro Side")),
+        ("反方 Con", config.get("con_model", "辩论反方 Con Side")),
+        ("裁判 Judge", config.get("judge_model", "独立裁判 Independent Judge")),
         ("背景 Context", background),
     ]
 
@@ -561,7 +567,7 @@ def main():
         sys.exit(1)
 
     workspace = os.path.abspath(sys.argv[1])
-    output_name = sys.argv[2] if len(sys.argv) > 2 else "debate_report.pdf"
+    output_name = sys.argv[2] if len(sys.argv) > 2 else "executive_summary.pdf"
 
     if not os.path.isdir(workspace):
         print(f"Error: workspace not found: {workspace}")
