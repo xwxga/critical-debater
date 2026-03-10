@@ -23,6 +23,7 @@ metadata:
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-10 21:30 | Claude | Step 5 + 5.5: 添加双语内容要求，新增双语轮次数据生成步骤 / Added bilingual content requirement in Step 5, new Step 5.5 for bilingual round data generation |
 | 2026-03-10 19:40 | Claude | Step 6 PDF layout: 从页面式改为表格驱动布局 + 添加 Python fallback / Replaced page-by-page layout with table-driven layout + added Python fallback |
 
 Generate the final debate report with verified facts, probable conclusions, contested points, scenario outlook, and 24h watchlist.
@@ -221,9 +222,19 @@ Include in FinalReport:
 ### Step 5: Write Report / 写入报告
 
 1. Assemble into FinalReport JSON schema
-2. Write to `reports/final_report.json`
-3. Validate with `scripts/validate-json.sh <file> final_report`
-4. Log report generation via `scripts/append-audit.sh`
+2. **Bilingual content requirement / 双语内容要求**:
+   ALL user-facing text fields MUST be bilingual: `中文内容 / English content`
+   所有面向用户的文本字段必须双语格式。辩论 agents 的原始数据可能是英文，你需要在综合时翻译为双语。
+   Affected fields / 涉及字段:
+   - `verified_facts[]` (each item)
+   - `probable_conclusions[]` (each item)
+   - `contested_points[]` (each item)
+   - `verdict_summary`
+   - `scenario_outlook.base_case`, `upside_triggers[]`, `downside_triggers[]`, `falsification_conditions[]`
+   - `watchlist_24h[].item`, `watchlist_24h[].reversal_trigger`
+3. Write to `reports/final_report.json`
+4. Validate with `scripts/validate-json.sh <file> final_report`
+5. Log report generation via `scripts/append-audit.sh`
 
 #### Output Format: `full_report` (default)
 Current behavior — generate complete FinalReport with all sections.
@@ -280,6 +291,39 @@ When `config.mode = "red_team"`, replace the standard FinalReport structure with
   "recommended_actions": ["Prioritized list of actions to reduce risk..."]
 }
 ```
+
+### Step 5.5: Generate Bilingual Round Data / 生成双语轮次数据
+
+辩论 agents 的原始轮次数据（pro_turn.json, con_turn.json, judge_ruling.json）可能只有英文。
+此步骤生成双语版本供 PDF 使用。
+The original round data from debate agents may be English-only.
+This step generates bilingual versions for PDF rendering.
+
+1. Read each round's original JSONs: `rounds/round_N/pro_turn.json`, `con_turn.json`, `judge_ruling.json`
+2. Translate the following text fields to bilingual format `中文 / English`:
+   - `arguments[].claim_text`
+   - `rebuttals[].rebuttal_text`
+   - `round_summary`
+   - `causal_validity_flags[].issue`
+   - `verification_results[].reasoning`
+3. Preserve all other fields unchanged (claim_id, evidence_ids, severity, etc.)
+4. Write to `reports/rounds_bilingual.json`:
+
+```json
+{
+  "rounds": [
+    {
+      "round": 1,
+      "pro": { "arguments": [...], "rebuttals": [...] },
+      "con": { "arguments": [...], "rebuttals": [...] },
+      "judge": { "round_summary": "...", "causal_validity_flags": [...], "verification_results": [...] }
+    }
+  ]
+}
+```
+
+**Important / 重要**: Keep the same schema and claim_ids as the originals. Only replace text content with bilingual versions. The Python PDF fallback script reads this file to render bilingual content.
+保持与原始数据相同的 schema 和 claim_id。只将文本内容替换为双语版本。
 
 ### Step 6: Generate PDF Reports (v3 MANDATORY) / 生成 PDF 报告（v3 必需）
 

@@ -583,13 +583,25 @@ def main():
     config = load_json(os.path.join(workspace, "config.json"))
     round_count = config.get("round_count", detect_round_count(workspace))
 
-    # Load round data
+    # Load round data — prefer bilingual version if available
+    bilingual_path = os.path.join(workspace, "reports/rounds_bilingual.json")
+    bilingual = load_json(bilingual_path)
+    bilingual_rounds = bilingual.get("rounds", []) if bilingual else []
+    if bilingual_rounds:
+        print(f"Using bilingual round data: {bilingual_path}")
+
     rounds_data = []
     for r in range(1, round_count + 1):
-        round_dir = os.path.join(workspace, f"rounds/round_{r}")
-        pro = load_json(os.path.join(round_dir, "pro_turn.json"))
-        con = load_json(os.path.join(round_dir, "con_turn.json"))
-        judge = load_json(os.path.join(round_dir, "judge_ruling.json"))
+        if bilingual_rounds and r <= len(bilingual_rounds):
+            rd = bilingual_rounds[r - 1]
+            pro = rd.get("pro", {})
+            con = rd.get("con", {})
+            judge = rd.get("judge", {})
+        else:
+            round_dir = os.path.join(workspace, f"rounds/round_{r}")
+            pro = load_json(os.path.join(round_dir, "pro_turn.json"))
+            con = load_json(os.path.join(round_dir, "con_turn.json"))
+            judge = load_json(os.path.join(round_dir, "judge_ruling.json"))
         rounds_data.append((pro, con, judge))
 
     # Load final report
