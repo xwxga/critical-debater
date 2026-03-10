@@ -324,7 +324,7 @@ def build_round_overview_table(story, rounds_data):
         judge_summary = esc(safe_str(judge.get("round_summary", "")))
 
         rows.append([
-            Paragraph(f"R{r}", ST["cell"]),
+            Paragraph(f"第{cn}轮<br/>R{r}", ST["cell"]),
             Paragraph(pro_claims, ST["cell_pro"]),
             Paragraph(con_claims, ST["cell_con"]),
             Paragraph(judge_summary, ST["cell_sm"]),
@@ -457,9 +457,9 @@ def build_round_detail(story, round_num, pro, con, judge, is_first=True):
     # Collect all arguments from both sides
     all_args = []
     for arg in pro.get("arguments", []):
-        all_args.append(("正方", arg, con, judge))
+        all_args.append(("正方 Pro", arg, con, judge))
     for arg in con.get("arguments", []):
-        all_args.append(("反方", arg, pro, judge))
+        all_args.append(("反方 Con", arg, pro, judge))
 
     for side, arg, opponent, j in all_args:
         claim_id = arg.get("claim_id", "")
@@ -473,15 +473,15 @@ def build_round_detail(story, round_num, pro, con, judge, is_first=True):
         for reb in opponent.get("rebuttals", []):
             target = reb.get("target_claim_id", "")
             if target == claim_id or _claim_matches(target, side, arg, pro, con):
-                opp_label = "反方" if side == "正方" else "正方"
-                attackers.append(red_marker(f"{opp_label}反驳"))
+                opp_label = "反方 Con" if side.startswith("正方") else "正方 Pro"
+                attackers.append(red_marker(f"{opp_label} 反驳 Rebutted"))
                 attack_details.append(safe_str(reb.get("rebuttal_text", "")))
 
         # Judge causal validity flags
         for flag in j.get("causal_validity_flags", []):
             if flag.get("claim_id") == claim_id or _claim_matches(flag.get("claim_id", ""), side, arg, pro, con):
                 sev = flag.get("severity", "")
-                attackers.append(orange_marker(f"裁判质疑 {sev}"))
+                attackers.append(orange_marker(f"裁判质疑 Questioned ({sev})"))
                 attack_details.append(safe_str(flag.get("issue", "")))
 
         # Judge verification results
@@ -489,14 +489,14 @@ def build_round_detail(story, round_num, pro, con, judge, is_first=True):
             if vr.get("claim_id") == claim_id or _claim_matches(vr.get("claim_id", ""), side, arg, pro, con):
                 status = vr.get("new_status", "")
                 if status in ("contested", "stale"):
-                    attackers.append(orange_marker(f"判定 {status}"))
+                    attackers.append(orange_marker(f"判定 Ruled {status}"))
                 judge_says.append(safe_str(vr.get("reasoning", "")))
 
         attackers_text = "<br/>".join(attackers) if attackers else "—"
         details_text = "<br/>".join(esc(d) for d in attack_details) if attack_details else "—"
         judge_text = "<br/>".join(esc(j_text) for j_text in judge_says) if judge_says else "—"
 
-        side_style = ST["cell_pro"] if side == "正方" else ST["cell_con"]
+        side_style = ST["cell_pro"] if side.startswith("正方") else ST["cell_con"]
 
         rows.append([
             Paragraph(esc(claim_text), ST["cell_sm"]),
@@ -529,11 +529,11 @@ def _claim_matches(target_id, side, arg, pro, con):
     except (ValueError, IndexError):
         return False
 
-    side_lower = "pro" if side == "正方" else "con"
+    side_lower = "pro" if side.startswith("正方") else "con"
     if target_side != side_lower:
         return False
 
-    source = pro if side == "正方" else con
+    source = pro if side.startswith("正方") else con
     args = source.get("arguments", [])
     return 0 <= target_idx < len(args) and args[target_idx] is arg
 
@@ -548,7 +548,7 @@ def add_page_decorations(canvas_obj, doc):
     canvas_obj.setFont(FONT_NAME, 7)
     canvas_obj.setFillColor(C_MUTED)
     page = canvas_obj.getPageNumber()
-    canvas_obj.drawCentredString(PAGE_W / 2, 12 * mm, f"Insight Debator | Page {page}")
+    canvas_obj.drawCentredString(PAGE_W / 2, 12 * mm, f"Insight Debator 洞察辩论 | 第{page}页 Page {page}")
     canvas_obj.setStrokeColor(C_DIVIDER)
     canvas_obj.setLineWidth(0.5)
     canvas_obj.line(20 * mm, PAGE_H - 15 * mm, PAGE_W - 20 * mm, PAGE_H - 15 * mm)
