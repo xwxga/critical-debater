@@ -272,7 +272,12 @@ def build_basic_info_table(story, config, final_report):
     vf = final_report.get("verified_facts", [])
     if vf:
         first = vf[0]
-        background = safe_str(first if isinstance(first, str) else first.get("fact", str(first)))
+        if isinstance(first, str):
+            background = safe_str(first)
+        elif isinstance(first, dict):
+            background = safe_str(first.get("fact", str(first)))
+        else:
+            background = safe_str(first)
     else:
         background = ""
 

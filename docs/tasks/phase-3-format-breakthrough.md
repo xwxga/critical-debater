@@ -22,7 +22,7 @@ Depends on Phase 1 (`speculation_level` config field).
 ## Task 1: Extend DebateTurn Schema with New Sections
 ## 任务 1：扩展 DebateTurn Schema 增加新 Section
 
-**File:** `.claude/skills/source-ingest/references/data-contracts.md`
+**File:** `.agents/skills/_shared/references/data-contracts.md`
 
 **Action:** Update the DebateTurn schema to include `historical_wisdom` and `speculative_scenarios`:
 
@@ -94,7 +94,7 @@ Exploratory section for imaginative scenario planning. Controlled by `config.spe
 ## Task 2: Update DebateTurn Skill to Generate New Sections
 ## 任务 2：更新 DebateTurn Skill 生成新 Section
 
-**File:** `.claude/skills/debate-turn/SKILL.md`
+**File:** `.agents/skills/debate-turn/SKILL.md`
 
 **Action:** Add two new steps after Step 6 (Analogy Self-Check):
 
@@ -154,7 +154,7 @@ For each scenario:
 ## Task 3: Update AnalogySafeguard for Dual Mode
 ## 任务 3：更新 AnalogySafeguard 支持双模式
 
-**File:** `.claude/skills/analogy-safeguard/SKILL.md`
+**File:** `.agents/skills/analogy-safeguard/SKILL.md`
 
 **Action:** Add a mode parameter to distinguish between strict and advisory contexts:
 
@@ -188,7 +188,7 @@ Current behavior unchanged:
 ## Task 4: Update JudgeAudit for New Sections
 ## 任务 4：更新 JudgeAudit 处理新 Section
 
-**File:** `.claude/skills/judge-audit/SKILL.md`
+**File:** `.agents/skills/judge-audit/SKILL.md`
 
 **Action:** Add a new step after Step 3 (Analogy Audit):
 
@@ -240,7 +240,7 @@ Update the JudgeRuling schema in data-contracts.md to include `historical_wisdom
 ## Task 5: Update FinalSynthesis to Integrate New Sections
 ## 任务 5：更新 FinalSynthesis 整合新 Section
 
-**File:** `.claude/skills/final-synthesis/SKILL.md`
+**File:** `.agents/skills/final-synthesis/SKILL.md`
 
 **Action:** Add a new step after Step 3 (Scenario Outlook):
 

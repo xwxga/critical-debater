@@ -23,6 +23,7 @@ metadata:
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | Step 5.5 移到 Red Team 前; "三轮" → "各轮" 动态轮次 / Moved Step 5.5 before Red Team; fixed hardcoded round count wording |
 | 2026-03-10 22:20 | Claude | Step 5 双语字段补全: 添加 to_verify/conclusion_profiles/historical_insights/speculative_frontier/evidence_diversity_assessment / Completed bilingual field list in Step 5 |
 | 2026-03-10 21:30 | Claude | Step 5 + 5.5: 添加双语内容要求，新增双语轮次数据生成步骤 / Added bilingual content requirement in Step 5, new Step 5.5 for bilingual round data generation |
 | 2026-03-10 19:40 | Claude | Step 6 PDF layout: 从页面式改为表格驱动布局 + 添加 Python fallback / Replaced page-by-page layout with table-driven layout + added Python fallback |
@@ -271,33 +272,6 @@ Generate a structured decision matrix:
 
 Write to `reports/decision_matrix.json` AND `reports/final_report.json`.
 
-### Red Team Report Format (v3) / 红队报告格式
-
-When `config.mode = "red_team"`, replace the standard FinalReport structure with:
-
-```json
-{
-  "topic": "...",
-  "mode": "red_team",
-  "risk_assessment": [
-    {
-      "risk_id": "risk_1",
-      "risk_description": "...",
-      "severity": "critical | high | medium | low",
-      "likelihood": "high | medium | low",
-      "risk_score": "severity x likelihood qualitative",
-      "red_team_argument": "How and why this risk could materialize...",
-      "blue_team_mitigation": "Proposed mitigation and residual risk...",
-      "judge_verdict": "Is mitigation feasible? Is residual risk acceptable?",
-      "evidence_ids": ["..."]
-    }
-  ],
-  "unmitigated_risks": ["Risks where Blue Team had no effective response..."],
-  "risk_matrix_summary": "Overall risk posture assessment...",
-  "recommended_actions": ["Prioritized list of actions to reduce risk..."]
-}
-```
-
 ### Step 5.5: Generate Bilingual Round Data / 生成双语轮次数据
 
 辩论 agents 的原始轮次数据（pro_turn.json, con_turn.json, judge_ruling.json）可能只有英文。
@@ -331,6 +305,33 @@ This step generates bilingual versions for PDF rendering.
 **Important / 重要**: Keep the same schema and claim_ids as the originals. Only replace text content with bilingual versions. The Python PDF fallback script reads this file to render bilingual content.
 保持与原始数据相同的 schema 和 claim_id。只将文本内容替换为双语版本。
 
+### Red Team Report Format (v3) / 红队报告格式
+
+When `config.mode = "red_team"`, replace the standard FinalReport structure with:
+
+```json
+{
+  "topic": "...",
+  "mode": "red_team",
+  "risk_assessment": [
+    {
+      "risk_id": "risk_1",
+      "risk_description": "...",
+      "severity": "critical | high | medium | low",
+      "likelihood": "high | medium | low",
+      "risk_score": "severity x likelihood qualitative",
+      "red_team_argument": "How and why this risk could materialize...",
+      "blue_team_mitigation": "Proposed mitigation and residual risk...",
+      "judge_verdict": "Is mitigation feasible? Is residual risk acceptable?",
+      "evidence_ids": ["..."]
+    }
+  ],
+  "unmitigated_risks": ["Risks where Blue Team had no effective response..."],
+  "risk_matrix_summary": "Overall risk posture assessment...",
+  "recommended_actions": ["Prioritized list of actions to reduce risk..."]
+}
+```
+
 ### Step 6: Generate PDF Reports (v3 MANDATORY) / 生成 PDF 报告（v3 必需）
 
 **This step is MANDATORY. Every debate MUST produce at least an executive summary PDF.**
@@ -344,7 +345,7 @@ Generate a table-driven, information-dense PDF with the following structure:
 
 **Part 1: Executive Summary (1-2 pages)**
 - 基本信息 table: 辩题, 轮次, 模型, 背景
-- 三轮辩论核心交锋 table: one row per round with 正方/反方核心论点 + 裁判裁定
+- 各轮辩论核心交锋 table: one row per round with 正方/反方核心论点 + 裁判裁定
 - 最终结论 table: 已验证事实/可能结论/争议要点 with counts and content
 - 24小时监控清单 table: 监控项 + 逆转触发条件
 - 总判断 highlighted box: base case assessment
