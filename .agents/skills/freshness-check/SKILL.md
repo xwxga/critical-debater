@@ -6,7 +6,14 @@ description: >
   "verify real-time information capability", or "assess source currency for current-state claims".
   Validates evidence timeliness and tags freshness status based on evidence track.
   验证证据时效性并根据证据轨道标记时效状态。
-version: 0.1.0
+version: 0.3.0
+license: MIT-0
+metadata:
+  openclaw:
+    requires:
+      bins: []
+    homepage: "https://github.com/xwxga/insight-debator"
+    emoji: "⏰"
 ---
 
 # FreshnessCheck

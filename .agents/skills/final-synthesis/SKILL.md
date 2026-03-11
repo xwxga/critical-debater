@@ -5,12 +5,28 @@ description: >
   "synthesize all rounds into a conclusion", "create the final output with watchlist and
   scenario outlook", "produce the debate summary", or "compile verified facts, contested
   points, and recommendations". Generates the final debate report from all rounds' data.
-  从所有回合数据生成最终辩论报告。
-version: 0.2.0
+  从所有回合数据生成最终辩论报告，含结论画像和 PDF 输出。
+version: 0.3.0
+license: MIT-0
+metadata:
+  openclaw:
+    requires:
+      bins: [bash, jq, python3]
+    homepage: "https://github.com/xwxga/insight-debator"
+    emoji: "📊"
 ---
 
 # FinalSynthesis
 # 最终综合
+
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| 2026-03-11 | Claude | Step 5.5 移到 Red Team 前; "三轮" → "各轮" 动态轮次 / Moved Step 5.5 before Red Team; fixed hardcoded round count wording |
+| 2026-03-10 22:20 | Claude | Step 5 双语字段补全: 添加 to_verify/conclusion_profiles/historical_insights/speculative_frontier/evidence_diversity_assessment / Completed bilingual field list in Step 5 |
+| 2026-03-10 21:30 | Claude | Step 5 + 5.5: 添加双语内容要求，新增双语轮次数据生成步骤 / Added bilingual content requirement in Step 5, new Step 5.5 for bilingual round data generation |
+| 2026-03-10 19:40 | Claude | Step 6 PDF layout: 从页面式改为表格驱动布局 + 添加 Python fallback / Replaced page-by-page layout with table-driven layout + added Python fallback |
 
 Generate the final debate report with verified facts, probable conclusions, contested points, scenario outlook, and 24h watchlist.
 生成包含已验证事实、可能结论、争议点、情景展望和 24h 监控清单的最终辩论报告。
@@ -208,9 +224,24 @@ Include in FinalReport:
 ### Step 5: Write Report / 写入报告
 
 1. Assemble into FinalReport JSON schema
-2. Write to `reports/final_report.json`
-3. Validate with `scripts/validate-json.sh <file> final_report`
-4. Log report generation via `scripts/append-audit.sh`
+2. **Bilingual content requirement / 双语内容要求**:
+   ALL user-facing text fields MUST be bilingual: `中文内容 / English content`
+   所有面向用户的文本字段必须双语格式。辩论 agents 的原始数据可能是英文，你需要在综合时翻译为双语。
+   Affected fields / 涉及字段:
+   - `verified_facts[]` (each item)
+   - `probable_conclusions[]` (each item)
+   - `contested_points[]` (each item)
+   - `to_verify[]` (each item)
+   - `verdict_summary`
+   - `scenario_outlook.base_case`, `upside_triggers[]`, `downside_triggers[]`, `falsification_conditions[]`
+   - `watchlist_24h[].item`, `watchlist_24h[].reversal_trigger`
+   - `conclusion_profiles[].conclusion_text`, `conclusion_profiles[].profile.*.rationale`
+   - `historical_insights.key_parallels[]`, `historical_insights.conflicting_lessons[]`, `historical_insights.meta_pattern`
+   - `speculative_frontier[].premise`, `speculative_frontier[].chain_of_events`, `speculative_frontier[].impact`
+   - `evidence_diversity_assessment.geographic_diversity`, `evidence_diversity_assessment.perspective_balance`, `evidence_diversity_assessment.diversity_warning`
+3. Write to `reports/final_report.json`
+4. Validate with `scripts/validate-json.sh <file> final_report`
+5. Log report generation via `scripts/append-audit.sh`
 
 #### Output Format: `full_report` (default)
 Current behavior — generate complete FinalReport with all sections.
@@ -240,6 +271,39 @@ Generate a structured decision matrix:
 4. Key uncertainty: What single factor could flip the conclusion?
 
 Write to `reports/decision_matrix.json` AND `reports/final_report.json`.
+
+### Step 5.5: Generate Bilingual Round Data / 生成双语轮次数据
+
+辩论 agents 的原始轮次数据（pro_turn.json, con_turn.json, judge_ruling.json）可能只有英文。
+此步骤生成双语版本供 PDF 使用。
+The original round data from debate agents may be English-only.
+This step generates bilingual versions for PDF rendering.
+
+1. Read each round's original JSONs: `rounds/round_N/pro_turn.json`, `con_turn.json`, `judge_ruling.json`
+2. Translate the following text fields to bilingual format `中文 / English`:
+   - `arguments[].claim_text`
+   - `rebuttals[].rebuttal_text`
+   - `round_summary`
+   - `causal_validity_flags[].issue`
+   - `verification_results[].reasoning`
+3. Preserve all other fields unchanged (claim_id, evidence_ids, severity, etc.)
+4. Write to `reports/rounds_bilingual.json`:
+
+```json
+{
+  "rounds": [
+    {
+      "round": 1,
+      "pro": { "arguments": [...], "rebuttals": [...] },
+      "con": { "arguments": [...], "rebuttals": [...] },
+      "judge": { "round_summary": "...", "causal_validity_flags": [...], "verification_results": [...] }
+    }
+  ]
+}
+```
+
+**Important / 重要**: Keep the same schema and claim_ids as the originals. Only replace text content with bilingual versions. The Python PDF fallback script reads this file to render bilingual content.
+保持与原始数据相同的 schema 和 claim_id。只将文本内容替换为双语版本。
 
 ### Red Team Report Format (v3) / 红队报告格式
 
@@ -277,51 +341,29 @@ Use the `pdf` skill (anthropic-skills:pdf) to generate formatted PDF reports.
 
 #### Default: Executive Summary PDF (ALWAYS generated)
 
-Generate a professionally formatted PDF with the following structure (minimum 5 pages):
+Generate a table-driven, information-dense PDF with the following structure:
 
-**Page 1: Title Page / 标题页**
-- Debate topic (bilingual)
-- Date and total rounds
-- Domain and mode
+**Part 1: Executive Summary (1-2 pages)**
+- 基本信息 table: 辩题, 轮次, 模型, 背景
+- 各轮辩论核心交锋 table: one row per round with 正方/反方核心论点 + 裁判裁定
+- 最终结论 table: 已验证事实/可能结论/争议要点 with counts and content
+- 24小时监控清单 table: 监控项 + 逆转触发条件
+- 总判断 highlighted box: base case assessment
 
-**Page 2-3: Key Findings / 核心发现**
-- Verified facts table (columns: Fact | Evidence Sources | Confidence)
-- Probable conclusions with confidence qualifiers
-- Top contested points with both sides' positions
-- Conclusion Profile display for each major conclusion (top 4-5 dimensions in compact table/label format):
-```
-Conclusion: "中东局势大概率升级 / Middle East escalation is highly probable"
-┌─────────────────────────────────────────────────────┐
-│ 概率 Probability: HIGH    置信度 Confidence: MEDIUM  │
-│ 共识度 Consensus: LOW     可逆性 Reversibility: HIGH │
-│ 时效窗口 Validity: 48h    影响 Impact: EXTREME       │
-│ 证据完整度 Coverage: 75%  可操作性: INFORMATIONAL     │
-└─────────────────────────────────────────────────────┘
-```
+**Part 2: Round Details (1 page per round)**
+- Legend: [R] 被对方反驳 [J] 被裁判质疑 [X] 被事实推翻
+- Per-round exchange table: 原始论点 | 谁的 | 被谁打 | 怎么打的 | 裁判怎么说
 
-**Page 4: Scenario Outlook / 情景展望**
-- Base case description
-- Upside/downside triggers table (columns: Trigger | Likelihood | Impact)
-- Falsification conditions
-
-**Page 5: Watchlist & Historical Insights / 监控清单与历史洞察**
-- 24h watchlist table (columns: Item | Reversal Trigger | Monitoring Source)
-- Key historical parallels (from historical_wisdom, if Phase 3 enabled)
-- Speculative frontier highlights (if speculation_level != conservative)
-
-**Page 6+ (if content warrants): Evidence Appendix / 证据附录**
-- Evidence diversity assessment
-- Source type distribution chart (text-based table)
-- Conflict details for contested claims
-
-**PDF formatting requirements / PDF 格式要求:**
-- Use tables for structured data (NOT paragraph text for tabular information)
-- Bilingual headers: Chinese first, English second
-- Professional font, clean layout
-- Page numbers in footer
-- Include debate metadata in header (topic, date, domain)
+**Style: 表格优先、信息压缩、中文优先、无花哨封面**
 
 Write to: `reports/executive_summary.pdf`
+
+#### Fallback: Python PDF Script / 备用：Python PDF 脚本
+
+If the `pdf` skill is not available or fails:
+1. Run: `python3 scripts/generate_debate_pdf.py <workspace_path> executive_summary.pdf`
+2. Verify output exists in `<workspace>/reports/executive_summary.pdf`
+3. If Python script also fails, log error and continue — JSON reports are the primary output
 
 #### Optional: Additional PDF Outputs
 

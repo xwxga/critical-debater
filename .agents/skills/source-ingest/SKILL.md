@@ -5,8 +5,15 @@ description: >
   "gather sources for a debate topic", "ingest and normalize sources", "fetch web content
   for evidence", "build the initial evidence store", or "find supporting data for arguments".
   Searches, fetches, and normalizes sources into EvidenceItem format for the debate evidence store.
-  搜索、抓取并将来源规范化为 EvidenceItem 格式。
-version: 0.2.0
+  搜索、抓取并将来源规范化为 EvidenceItem 格式，支持领域感知可信度和社交媒体预筛。
+version: 0.3.0
+license: MIT-0
+metadata:
+  openclaw:
+    requires:
+      bins: [bash, shasum]
+    homepage: "https://github.com/xwxga/insight-debator"
+    emoji: "🔍"
 ---
 
 # SourceIngest

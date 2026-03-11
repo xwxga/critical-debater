@@ -6,7 +6,14 @@ description: >
   "track claim state transitions", or "manage the claim state machine".
   Manages claim state machine transitions and persists to claim_ledger.json.
   管理声明状态机转换并持久化到 claim_ledger.json。
-version: 0.2.0
+version: 0.3.0
+license: MIT-0
+metadata:
+  openclaw:
+    requires:
+      bins: [bash, jq]
+    homepage: "https://github.com/xwxga/insight-debator"
+    emoji: "📋"
 ---
 
 # ClaimLedgerUpdate

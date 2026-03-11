@@ -7,7 +7,14 @@ description: >
   or "produce a debate round output". Constructs debate arguments with reasoning chains,
   rebuttals, and evidence references.
   构建包含推理链、反驳和证据引用的辩论论点。
-version: 0.2.0
+version: 0.3.0
+license: MIT-0
+metadata:
+  openclaw:
+    requires:
+      bins: [bash, shasum]
+    homepage: "https://github.com/xwxga/insight-debator"
+    emoji: "🎤"
 ---
 
 # DebateTurn

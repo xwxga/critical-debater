@@ -25,7 +25,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   jq \
   nano \
   vim \
+  python3 \
+  python3-pip \
+  fonts-noto-cjk \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Python PDF dependencies
+RUN pip3 install --break-system-packages reportlab
 
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \

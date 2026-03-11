@@ -1,11 +1,23 @@
 # Debate workspace outputs (runtime data, not source)
 debate-workspace*/
 
+# Claude local settings (machine-specific permissions cache)
+.claude/settings.local.json
+
 # Claude plans (session-specific)
 .claude/plans/
 
 # Environment secrets
 .env
+
+# Node.js (legacy pdfkit, no longer used)
+node_modules/
+package.json
+package-lock.json
+
+# Downloaded font files (runtime artifacts)
+*.otf
+*.ttf
 
 # OS
 .DS_Store

@@ -7,7 +7,14 @@ description: >
   "auditing classical reference compliance". Validates historical analogy usage
   against structural and proportion rules.
   验证历史类比使用是否符合结构和比例规则。
-version: 0.2.0
+version: 0.3.0
+license: MIT-0
+metadata:
+  openclaw:
+    requires:
+      bins: []
+    homepage: "https://github.com/xwxga/insight-debator"
+    emoji: "📜"
 ---
 
 # AnalogySafeguard

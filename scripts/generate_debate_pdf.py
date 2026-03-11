@@ -1,638 +1,663 @@
 #!/usr/bin/env python3
 """
-Generate a beautiful bilingual PDF report of the Iran debate.
-生成伊朗局势辩论的美观双语 PDF 报告。
+Generate a table-driven, information-dense debate PDF report.
+生成表格驱动、信息密集的辩论 PDF 报告。
+
+Usage: python3 scripts/generate_debate_pdf.py <workspace_path> [output_filename]
 """
 
 import json
+import glob
 import os
+import subprocess
+import sys
+import urllib.request
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.colors import HexColor, white
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+from reportlab.lib.enums import TA_LEFT
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, PageBreak,
-    Table, TableStyle, HRFlowable,
+    Table, TableStyle,
 )
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-# ── Paths ──
-BASE = "/Users/wenxiangxu/Desktop/projects/insight-debator/debate-workspace"
-SCRIPTS = "/Users/wenxiangxu/Desktop/projects/insight-debator/scripts"
-OUTPUT = os.path.join(BASE, "reports/Iran_Debate_Report.pdf")
-
 # ── Colors ──
-C_PRO       = HexColor("#1B5E20")
-C_PRO_BG    = HexColor("#E8F5E9")
-C_CON       = HexColor("#B71C1C")
-C_CON_BG    = HexColor("#FFEBEE")
-C_JUDGE     = HexColor("#E65100")
-C_JUDGE_BG  = HexColor("#FFF3E0")
-C_TITLE     = HexColor("#1A237E")
-C_SUBTITLE  = HexColor("#283593")
-C_BODY      = HexColor("#212121")
-C_MUTED     = HexColor("#616161")
-C_ACCENT    = HexColor("#0D47A1")
-C_DIVIDER   = HexColor("#BDBDBD")
-C_COVER_BG  = HexColor("#0D1B2A")
-C_GOLD      = HexColor("#FFB300")
+C_PRO = HexColor("#1B5E20")
+C_PRO_BG = HexColor("#E8F5E9")
+C_CON = HexColor("#B71C1C")
+C_CON_BG = HexColor("#FFEBEE")
+C_JUDGE = HexColor("#E65100")
+C_JUDGE_BG = HexColor("#FFF3E0")
+C_TITLE = HexColor("#1A237E")
+C_BODY = HexColor("#212121")
+C_MUTED = HexColor("#616161")
+C_ACCENT = HexColor("#0D47A1")
+C_DIVIDER = HexColor("#BDBDBD")
+C_HIGHLIGHT_BG = HexColor("#F5F5F5")
 
-# ── Register Fonts ──
-pdfmetrics.registerFont(TTFont("ArialUnicode", "/Library/Fonts/Arial Unicode.ttf"))
+# ── Constants ──
+CIRCLED_NUMS = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"]
+CN_NUMS = {1: "一", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六", 7: "七", 8: "八", 9: "九", 10: "十"}
 
-# ── Load translations ──
-with open(os.path.join(SCRIPTS, "translations.json"), "r", encoding="utf-8") as f:
-    TR = json.load(f)
+def circled_num(i):
+    """Get circled number symbol, fallback to (N) for overflow."""
+    return CIRCLED_NUMS[i] if i < len(CIRCLED_NUMS) else f"({i + 1})"
+
+
+FONT_NAME = "CJKFont"
+FONT_NAME_BOLD = "CJKFontBold"
+PAGE_W, PAGE_H = A4
+CONTENT_W = PAGE_W - 40 * mm  # 20mm margins each side
+
+# Google Fonts TTF download URL for NotoSansSC variable weight
+NOTO_SANS_SC_URL = "https://github.com/google/fonts/raw/main/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf"
+FONT_CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "debate-fonts")
 
 
 def esc(text):
+    """XML-escape text for reportlab Paragraph."""
     if not text:
         return ""
-    return (text.replace("&", "&amp;").replace("<", "&lt;")
-            .replace(">", "&gt;").replace('"', "&quot;").replace("'", "&#39;"))
+    return (
+        str(text)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
 
 
-def make_divider():
-    return HRFlowable(width="100%", thickness=0.5, color=C_DIVIDER,
-                      spaceBefore=4*mm, spaceAfter=4*mm)
+def load_json(path):
+    """Load JSON file, return empty dict on failure."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Warning: failed to load {path}: {e}")
+        return {}
 
 
-def make_colored_box(elements, bg_color, border_color):
-    t = Table([[elements]], colWidths=[155*mm])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), bg_color),
-        ("BOX", (0, 0), (-1, -1), 1, border_color),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-    ]))
-    return t
+# ═════════════════════════════════════════════════════════════
+# Font detection and registration
+# ═════════════════════════════════════════════════════════════
+
+def find_cjk_font():
+    """Cross-platform CJK TTF font detection."""
+    candidates = [
+        # Cached download
+        os.path.join(FONT_CACHE_DIR, "NotoSansSC.ttf"),
+        # Linux system fonts (TTF/TTC only — OTF with CFF outlines not supported by reportlab)
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansSC-Regular.ttf",
+        # macOS
+        "/Library/Fonts/Arial Unicode.ttf",
+        "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            return path
+
+    # Dynamic fallback: fc-list for TTF/TTC only
+    try:
+        result = subprocess.run(
+            ["fc-list", ":lang=zh", "file"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in result.stdout.strip().split("\n"):
+            path = line.strip().rstrip(":")
+            if os.path.isfile(path) and (path.endswith(".ttf") or path.endswith(".ttc")):
+                return path
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
+def download_noto_font():
+    """Download NotoSansSC TTF from Google Fonts as last resort."""
+    cache_path = os.path.join(FONT_CACHE_DIR, "NotoSansSC.ttf")
+    if os.path.isfile(cache_path):
+        return cache_path
+    print(f"Downloading NotoSansSC TTF font...")
+    try:
+        os.makedirs(FONT_CACHE_DIR, exist_ok=True)
+        urllib.request.urlretrieve(NOTO_SANS_SC_URL, cache_path)
+        if os.path.isfile(cache_path) and os.path.getsize(cache_path) > 1_000_000:
+            print(f"Font downloaded to {cache_path}")
+            return cache_path
+        else:
+            os.remove(cache_path)
+    except Exception as e:
+        print(f"Font download failed: {e}")
+    return None
+
+
+def register_fonts():
+    """Register CJK fonts. Returns True on success."""
+    global FONT_NAME, FONT_NAME_BOLD
+
+    font_path = find_cjk_font()
+    if not font_path:
+        font_path = download_noto_font()
+    if not font_path:
+        return False
+
+    print(f"Using font: {font_path}")
+    pdfmetrics.registerFont(TTFont(FONT_NAME, font_path))
+    # Note: Same font for bold — most CJK TTF fonts don't ship a separate bold weight.
+    # reportlab uses synthetic bold via <b> tag, which is acceptable for table headers.
+    pdfmetrics.registerFont(TTFont(FONT_NAME_BOLD, font_path))
+    return True
+
+
+# ═════════════════════════════════════════════════════════════
+# Styles
+# ═════════════════════════════════════════════════════════════
+
+def detect_round_count(workspace):
+    """Auto-detect number of rounds from directory structure."""
+    rounds_dir = os.path.join(workspace, "rounds")
+    if not os.path.isdir(rounds_dir):
+        return 0
+    return len(glob.glob(os.path.join(rounds_dir, "round_*")))
 
 
 def S(name, **overrides):
-    """Create a ParagraphStyle with ArialUnicode as base."""
+    """Create a ParagraphStyle with CJK font."""
     defaults = {
-        "fontName": "ArialUnicode", "fontSize": 10, "leading": 16,
-        "textColor": C_BODY, "alignment": TA_LEFT, "spaceAfter": 3*mm,
+        "fontName": FONT_NAME,
+        "fontSize": 9,
+        "leading": 14,
+        "textColor": C_BODY,
+        "alignment": TA_LEFT,
+        "spaceAfter": 2 * mm,
+        "wordWrap": "CJK",
     }
     defaults.update(overrides)
     return ParagraphStyle(name, **defaults)
 
 
-# ── All styles ──
-ST = {
-    "cover_en": S("cover_en", fontSize=28, leading=36, alignment=TA_CENTER, textColor=white, spaceAfter=4*mm),
-    "cover_zh": S("cover_zh", fontSize=22, leading=30, alignment=TA_CENTER, textColor=C_GOLD, spaceAfter=12*mm),
-    "cover_sub": S("cover_sub", fontSize=13, leading=20, alignment=TA_CENTER, textColor=HexColor("#B0BEC5"), spaceAfter=3*mm),
-    "cover_date": S("cover_date", fontSize=11, leading=16, alignment=TA_CENTER, textColor=HexColor("#78909C")),
-    "h1": S("h1", fontSize=20, leading=28, textColor=C_TITLE, spaceAfter=6*mm, spaceBefore=8*mm),
-    "h2": S("h2", fontSize=15, leading=22, textColor=C_SUBTITLE, spaceAfter=4*mm, spaceBefore=6*mm),
-    "h3": S("h3", fontSize=12, leading=18, textColor=C_ACCENT, spaceAfter=3*mm, spaceBefore=4*mm),
-    "body": S("body", alignment=TA_JUSTIFY),
-    "body_zh": S("body_zh", textColor=C_MUTED, spaceAfter=4*mm, alignment=TA_JUSTIFY),
-    "body_sm": S("body_sm", fontSize=9, leading=14, spaceAfter=2*mm, alignment=TA_JUSTIFY),
-    "body_sm_zh": S("body_sm_zh", fontSize=9, leading=14, textColor=C_MUTED, spaceAfter=3*mm, alignment=TA_JUSTIFY),
-    "pro_h": S("pro_h", fontSize=13, leading=20, textColor=C_PRO, spaceAfter=3*mm, spaceBefore=5*mm),
-    "con_h": S("con_h", fontSize=13, leading=20, textColor=C_CON, spaceAfter=3*mm, spaceBefore=5*mm),
-    "judge_h": S("judge_h", fontSize=13, leading=20, textColor=C_JUDGE, spaceAfter=3*mm, spaceBefore=5*mm),
-    "rc_label": S("rc_label", fontSize=9, leading=13, textColor=C_ACCENT, spaceAfter=1*mm, leftIndent=8*mm),
-    "rc_text": S("rc_text", fontSize=9, leading=14, textColor=C_MUTED, spaceAfter=2*mm, leftIndent=12*mm, alignment=TA_JUSTIFY),
-    "rc_text_zh": S("rc_text_zh", fontSize=9, leading=14, textColor=HexColor("#9E9E9E"), spaceAfter=3*mm, leftIndent=12*mm, alignment=TA_JUSTIFY),
-    "rebuttal": S("rebuttal", fontSize=9.5, leading=15, textColor=HexColor("#4A148C"), spaceAfter=2*mm, leftIndent=8*mm, alignment=TA_JUSTIFY),
-    "rebuttal_zh": S("rebuttal_zh", fontSize=9.5, leading=15, textColor=HexColor("#7B1FA2"), spaceAfter=3*mm, leftIndent=8*mm, alignment=TA_JUSTIFY),
-    "verified": S("verified", fontSize=9.5, leading=15, textColor=C_PRO, spaceAfter=2*mm, leftIndent=8*mm),
-    "contested": S("contested", fontSize=9.5, leading=15, textColor=C_JUDGE, spaceAfter=2*mm, leftIndent=8*mm),
-}
+ST = {}
 
 
-def load_json(path):
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def bilingual(en_text, zh_text, en_style, zh_style, story):
-    story.append(Paragraph(esc(en_text), en_style))
-    if zh_text:
-        story.append(Paragraph(esc(zh_text), zh_style))
+def init_styles():
+    global ST
+    ST = {
+        "title": S("title", fontSize=16, leading=22, textColor=C_TITLE,
+                    spaceAfter=4 * mm, fontName=FONT_NAME_BOLD),
+        "h2": S("h2", fontSize=12, leading=18, textColor=C_ACCENT,
+                 spaceAfter=3 * mm, spaceBefore=4 * mm, fontName=FONT_NAME_BOLD),
+        "cell": S("cell", fontSize=8, leading=12, spaceAfter=0),
+        "cell_header": S("cell_header", fontSize=8, leading=12, textColor=white,
+                          spaceAfter=0, fontName=FONT_NAME_BOLD),
+        "cell_pro": S("cell_pro", fontSize=8, leading=12, textColor=C_PRO, spaceAfter=0),
+        "cell_con": S("cell_con", fontSize=8, leading=12, textColor=C_CON, spaceAfter=0),
+        "cell_sm": S("cell_sm", fontSize=7, leading=10, spaceAfter=0),
+        "body": S("body", fontSize=9, leading=14),
+        "highlight": S("highlight", fontSize=10, leading=16, fontName=FONT_NAME_BOLD),
+        "legend": S("legend", fontSize=8, leading=12, textColor=C_MUTED),
+    }
 
 
 # ═════════════════════════════════════════════════════════════
-# Cover
+# Helpers
 # ═════════════════════════════════════════════════════════════
-def build_cover(story):
-    story.append(Spacer(1, 50*mm))
-    rows = [
-        Paragraph("INSIGHT DEBATOR", ST["cover_en"]),
-        Paragraph("Multi-Agent Debate Analysis Report", ST["cover_sub"]),
-        Paragraph("多智能体辩论分析报告", ST["cover_sub"]),
-        Spacer(1, 10*mm),
-        HRFlowable(width="60%", thickness=1.5, color=C_GOLD, spaceBefore=2*mm, spaceAfter=6*mm),
-        Paragraph("Will the Iran Situation Escalate Next Week?", ST["cover_en"]),
-        Paragraph("下周伊朗局势是否会升级？", ST["cover_zh"]),
-        Spacer(1, 15*mm),
-        Paragraph("3-Round Structured Debate with Independent Verification", ST["cover_sub"]),
-        Paragraph("三轮结构化辩论 + 独立验证", ST["cover_sub"]),
-        Spacer(1, 8*mm),
-        Paragraph("Generated: March 9, 2026 | 生成：2026年3月9日", ST["cover_date"]),
-        Paragraph("Pro (Sonnet) vs Con (Sonnet) | Judge (Opus)", ST["cover_date"]),
-    ]
-    t = Table([[r] for r in rows], colWidths=[170*mm])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), C_COVER_BG),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-        ("LEFTPADDING", (0, 0), (-1, -1), 15),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 15),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-    ]))
-    story.append(t)
-    story.append(PageBreak())
+
+def safe_str(text):
+    """Convert to string safely. No truncation — let reportlab Paragraph handle wrapping."""
+    if not text:
+        return ""
+    return str(text)
 
 
-# ═════════════════════════════════════════════════════════════
-# TOC
-# ═════════════════════════════════════════════════════════════
-def build_toc(story):
-    story.append(Paragraph("Table of Contents / 目录", ST["h1"]))
-    story.append(Spacer(1, 4*mm))
-    items = [
-        ("1. Executive Summary / 执行摘要", "核心发现概览"),
-        ("2. Round 1 / 第一轮", "开场论点 + 裁判裁定"),
-        ("3. Round 2 / 第二轮", "代理人升级 + 外交渠道"),
-        ("4. Round 3 / 第三轮", "战争目标 + 指挥权"),
-        ("5. Final Report / 最终报告", "已验证事实、结论、监控清单"),
-        ("6. Scenario Outlook / 情景展望", "基线情景 + 触发因素"),
-    ]
-    for title, desc in items:
-        story.append(Paragraph(f"<b>{esc(title)}</b>", ST["body"]))
-        story.append(Paragraph(f"<i>{esc(desc)}</i>", ST["body_zh"]))
-    story.append(PageBreak())
-
-
-# ═════════════════════════════════════════════════════════════
-# Executive Summary
-# ═════════════════════════════════════════════════════════════
-def build_exec_summary(story, fr):
-    story.append(Paragraph("1. Executive Summary / 执行摘要", ST["h1"]))
-    story.append(make_divider())
-
-    data = [
-        ["指标 / Metric", "数值 / Value"],
-        ["辩论主题 / Topic", "下周伊朗局势是否会升级？\nWill the Iran situation escalate next week?"],
-        ["总轮数 / Rounds", "3"],
-        ["已验证事实 / Verified Facts", str(len(fr.get("verified_facts", [])))],
-        ["可能结论 / Probable Conclusions", str(len(fr.get("probable_conclusions", [])))],
-        ["争议要点 / Contested Points", str(len(fr.get("contested_points", [])))],
-        ["监控清单 / Watchlist", str(len(fr.get("watchlist_24h", [])))],
-    ]
-    t = Table(data, colWidths=[80*mm, 80*mm])
-    t.setStyle(TableStyle([
+def make_table(data, col_widths, extra_styles=None):
+    """Build a styled Table with standard formatting."""
+    t = Table(data, colWidths=col_widths, repeatRows=1)
+    style_cmds = [
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("LEADING", (0, 0), (-1, -1), 12),
+        # Header
         ("BACKGROUND", (0, 0), (-1, 0), C_ACCENT),
         ("TEXTCOLOR", (0, 0), (-1, 0), white),
-        ("FONTNAME", (0, 0), (-1, -1), "ArialUnicode"),
-        ("FONTSIZE", (0, 0), (-1, -1), 10),
-        ("LEADING", (0, 0), (-1, -1), 15),
-        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        # Alternating rows
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, C_HIGHLIGHT_BG]),
+        # Grid
         ("GRID", (0, 0), (-1, -1), 0.5, C_DIVIDER),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor("#F5F5F5")]),
-    ]))
-    story.append(t)
-    story.append(Spacer(1, 6*mm))
-
-    story.append(Paragraph("基线评估 / Base Case Assessment", ST["h2"]))
-    bc = fr.get("scenario_outlook", {}).get("base_case", "")
-    if " / " in bc:
-        en, zh = bc.split(" / ", 1)
-        bilingual(en, zh, ST["body"], ST["body_zh"], story)
-    else:
-        story.append(Paragraph(esc(bc), ST["body"]))
-    story.append(PageBreak())
-
-
-# ═════════════════════════════════════════════════════════════
-# Argument builder
-# ═════════════════════════════════════════════════════════════
-def build_argument(story, arg, idx, side, round_num):
-    color = C_PRO if side == "pro" else C_CON
-    bg = C_PRO_BG if side == "pro" else C_CON_BG
-    icon = "正方 PRO" if side == "pro" else "反方 CON"
-    h_style = ST["pro_h"] if side == "pro" else ST["con_h"]
-
-    story.append(Paragraph(f"<b>[{icon}] 论点 {idx} / Argument {idx}</b>", h_style))
-
-    # Claim: EN
-    en_claim = arg["claim_text"]
-    # Claim: ZH from translations
-    tr_key = f"R{round_num}_{side.upper()}_{idx}"
-    zh_claim = TR["claims"].get(tr_key, "")
-
-    claim_ps = S("claim_inner", fontSize=10.5, leading=16, textColor=color, alignment=TA_JUSTIFY)
-    claim_ps_zh = S("claim_inner_zh", fontSize=10, leading=15, textColor=HexColor("#424242"), alignment=TA_JUSTIFY)
-
-    inner = [Paragraph(f"<b>{esc(en_claim)}</b>", claim_ps)]
-    if zh_claim:
-        inner.append(Spacer(1, 2*mm))
-        inner.append(Paragraph(esc(zh_claim), claim_ps_zh))
-    story.append(make_colored_box(inner, bg, color))
-    story.append(Spacer(1, 2*mm))
-
-    # Reasoning chain
-    rc = arg.get("reasoning_chain", {})
-    tr_rc = TR["reasoning_chains"].get(tr_key, {})
-
-    labels = [
-        ("observed_facts", "观察到的事实 / Observed Facts"),
-        ("mechanism", "机制 / Mechanism"),
-        ("scenario_implication", "情景推演 / Scenario Implication"),
-        ("trigger_conditions", "触发条件 / Trigger Conditions"),
-        ("falsification_conditions", "证伪条件 / Falsification Conditions"),
+        # Padding
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
     ]
-    for key, label in labels:
-        en_text = rc.get(key, "")
-        zh_text = tr_rc.get(key, "")
-        if en_text:
-            story.append(Paragraph(f"<b>{esc(label)}</b>", ST["rc_label"]))
-            story.append(Paragraph(esc(en_text), ST["rc_text"]))
-            if zh_text:
-                story.append(Paragraph(esc(zh_text), ST["rc_text_zh"]))
-
-    story.append(Spacer(1, 2*mm))
+    if extra_styles:
+        style_cmds.extend(extra_styles)
+    t.setStyle(TableStyle(style_cmds))
+    return t
 
 
-def build_rebuttal(story, reb, side, round_num, reb_idx):
-    icon = "正方 PRO" if side == "pro" else "反方 CON"
+# Attack marker helpers — use <font color> inline HTML for colored markers
+def red_marker(text):
+    return f'<font color="#B71C1C">[R]</font> {esc(text)}'
 
-    story.append(Paragraph(
-        f"<b>[{icon}] 反驳 / Rebuttal</b> (针对 {esc(reb.get('target_claim_id', ''))})",
-        ST["rc_label"]
-    ))
 
-    # EN
-    story.append(Paragraph(esc(reb.get("rebuttal_text", "")), ST["rebuttal"]))
+def orange_marker(text):
+    return f'<font color="#E65100">[J]</font> {esc(text)}'
 
-    # ZH
-    tr_key = f"R{round_num}_{side.upper()}_reb_{reb_idx}"
-    zh = TR["rebuttals"].get(tr_key, "")
-    if zh:
-        story.append(Paragraph(esc(zh), ST["rebuttal_zh"]))
+
+def black_marker(text):
+    return f'<font color="#212121">[X]</font> {esc(text)}'
 
 
 # ═════════════════════════════════════════════════════════════
-# Round builder
+# Section builders
 # ═════════════════════════════════════════════════════════════
-def build_round(story, rnd, pro, con, judge):
-    cn_num = {1: "一", 2: "二", 3: "三"}[rnd]
-    story.append(Paragraph(f"Round {rnd} / 第{cn_num}轮", ST["h1"]))
-    story.append(make_divider())
 
-    # ── PRO ──
-    story.append(Paragraph(
-        "<font color='#1B5E20'>&#9654;</font> <b>正方 Pro Side (Sonnet)</b>",
-        ST["pro_h"]
-    ))
-    story.append(Paragraph(
-        "<i>立场：局势将会升级 / Position: The situation WILL escalate</i>",
-        ST["body_zh"]
-    ))
+def build_basic_info_table(story, config, final_report):
+    """Section 1: 基本信息 table."""
+    story.append(Paragraph("辩论报告 Debate Report", ST["title"]))
+    story.append(Spacer(1, 2 * mm))
 
-    for i, arg in enumerate(pro.get("arguments", []), 1):
-        build_argument(story, arg, i, "pro", rnd)
+    topic = config.get("topic", "Debate")
+    round_count = config.get("round_count", 0)
+    created_at = config.get("created_at", "")[:10]
 
-    for i, reb in enumerate(pro.get("rebuttals", []), 1):
-        build_rebuttal(story, reb, "pro", rnd, i)
-
-    for mr in pro.get("mandatory_responses", []):
-        if mr.get("response_text"):
-            story.append(Paragraph(
-                f"<b>[正方] 必答回应 / Response to {esc(mr.get('point_id', ''))}</b>",
-                ST["rc_label"]
-            ))
-            story.append(Paragraph(esc(mr["response_text"]), ST["rc_text"]))
-
-    story.append(make_divider())
-
-    # ── CON ──
-    story.append(Paragraph(
-        "<font color='#B71C1C'>&#9654;</font> <b>反方 Con Side (Sonnet)</b>",
-        ST["con_h"]
-    ))
-    story.append(Paragraph(
-        "<i>立场：局势不会升级 / Position: The situation will NOT escalate</i>",
-        ST["body_zh"]
-    ))
-
-    for i, arg in enumerate(con.get("arguments", []), 1):
-        build_argument(story, arg, i, "con", rnd)
-
-    for i, reb in enumerate(con.get("rebuttals", []), 1):
-        build_rebuttal(story, reb, "con", rnd, i)
-
-    for mr in con.get("mandatory_responses", []):
-        if mr.get("response_text"):
-            story.append(Paragraph(
-                f"<b>[反方] 必答回应 / Response to {esc(mr.get('point_id', ''))}</b>",
-                ST["rc_label"]
-            ))
-            story.append(Paragraph(esc(mr["response_text"]), ST["rc_text"]))
-
-    story.append(make_divider())
-
-    # ── JUDGE ──
-    story.append(Paragraph(
-        "<font color='#E65100'>&#9654;</font> <b>裁判裁定 / Judge Ruling (Opus)</b>",
-        ST["judge_h"]
-    ))
-
-    # Verification results
-    story.append(Paragraph("<b>验证结果 / Verification Results</b>", ST["h3"]))
-
-    for vr in judge.get("verification_results", []):
-        status = vr.get("new_status", "unverified")
-        cid = vr.get("claim_id", "")
-        status_map = {
-            "verified": ("&#10004;", "#1B5E20", "已验证 VERIFIED"),
-            "contested": ("&#9888;", "#E65100", "有争议 CONTESTED"),
-            "stale": ("&#10060;", "#616161", "已过期 STALE"),
-        }
-        icon, color, label = status_map.get(status, ("?", "#616161", status))
-        s = ST["verified"] if status == "verified" else ST["contested"]
-
-        story.append(Paragraph(
-            f"<b><font color='{color}'>{icon} [{esc(cid)}] {label}</font></b>", s
-        ))
-        # EN reasoning
-        story.append(Paragraph(esc(vr.get("reasoning", "")), ST["rc_text"]))
-
-        # ZH reasoning from translations
-        v_idx = list(judge.get("verification_results", [])).index(vr) + 1
-        tr_key = f"R{rnd}_V{v_idx}"
-        zh_v = TR["judge_verifications"].get(tr_key, "")
-        if zh_v:
-            story.append(Paragraph(esc(zh_v), ST["rc_text_zh"]))
-
-    # Causal validity flags
-    flags = judge.get("causal_validity_flags", [])
-    if flags:
-        story.append(Paragraph("<b>因果有效性问题 / Causal Validity Issues</b>", ST["h3"]))
-        for i, flag in enumerate(flags, 1):
-            sev = flag.get("severity", "minor")
-            sev_color = {"critical": "#B71C1C", "moderate": "#E65100", "minor": "#616161"}.get(sev, "#616161")
-            story.append(Paragraph(
-                f"<font color='{sev_color}'><b>[{esc(flag.get('claim_id', ''))}] 严重度: {sev.upper()}</b></font>",
-                ST["rc_label"]
-            ))
-            story.append(Paragraph(esc(flag.get("issue", "")), ST["rc_text"]))
-            tr_key = f"R{rnd}_F{i}"
-            zh_f = TR["judge_causal_flags"].get(tr_key, "")
-            if zh_f:
-                story.append(Paragraph(esc(zh_f), ST["rc_text_zh"]))
-
-    # Mandatory response points
-    mrps = judge.get("mandatory_response_points", [])
-    if mrps:
-        story.append(Paragraph("<b>必答要点 / Mandatory Response Points</b>", ST["h3"]))
-        for i, mrp in enumerate(mrps, 1):
-            target = mrp.get("target", "both")
-            t_map = {"pro": ("正方", "#1B5E20"), "con": ("反方", "#B71C1C"), "both": ("双方", "#0D47A1")}
-            t_label, t_color = t_map.get(target, ("both", "#0D47A1"))
-            pid = mrp.get("point_id", "")
-
-            story.append(Paragraph(
-                f"<font color='{t_color}'><b>[{esc(pid)}] 针对: {t_label} {target.upper()}</b></font>",
-                ST["rc_label"]
-            ))
-            story.append(Paragraph(esc(mrp.get("point", "")), ST["rc_text"]))
-            tr_key = f"R{rnd}_MRP_{i}"
-            zh_mrp = TR["judge_mrps"].get(tr_key, "")
-            if zh_mrp:
-                story.append(Paragraph(esc(zh_mrp), ST["rc_text_zh"]))
-
-            reason = mrp.get("reason", "")
-            if reason:
-                story.append(Paragraph(f"<i>Reason: {esc(reason)}</i>", ST["rc_text"]))
-                tr_reason_key = f"R{rnd}_MRP_{i}_reason"
-                zh_r = TR["judge_mrps"].get(tr_reason_key, "")
-                if zh_r:
-                    story.append(Paragraph(f"<i>{esc(zh_r)}</i>", ST["rc_text_zh"]))
-
-    # Round summary
-    summary_en = judge.get("round_summary", "")
-    tr_sum_key = f"R{rnd}"
-    summary_zh = TR["round_summaries"].get(tr_sum_key, "")
-
-    if summary_en:
-        story.append(Paragraph("<b>回合总结 / Round Summary</b>", ST["h3"]))
-        inner = [
-            Paragraph(esc(summary_en), S("sum_en", fontSize=10, leading=16, textColor=C_BODY, alignment=TA_JUSTIFY)),
-        ]
-        if summary_zh:
-            inner.append(Spacer(1, 3*mm))
-            inner.append(Paragraph(esc(summary_zh), S("sum_zh", fontSize=10, leading=16, textColor=C_MUTED, alignment=TA_JUSTIFY)))
-        story.append(make_colored_box(inner, C_JUDGE_BG, C_JUDGE))
-
-    story.append(PageBreak())
-
-
-# ═════════════════════════════════════════════════════════════
-# Final Report
-# ═════════════════════════════════════════════════════════════
-def build_bilingual_list(story, items, h_en, h_zh, icon, icon_color):
-    story.append(Paragraph(
-        f"<font color='{icon_color}'>{icon}</font> <b>{h_zh} / {h_en}</b> ({len(items)} items)",
-        ST["h2"]
-    ))
-    for i, item in enumerate(items, 1):
-        if " / " in item:
-            en, zh = item.split(" / ", 1)
-            story.append(Paragraph(f"<b>{i}.</b> {esc(en)}", ST["body_sm"]))
-            story.append(Paragraph(esc(zh), ST["body_sm_zh"]))
+    # Background from first verified fact (may be string or dict)
+    vf = final_report.get("verified_facts", [])
+    if vf:
+        first = vf[0]
+        if isinstance(first, str):
+            background = safe_str(first)
+        elif isinstance(first, dict):
+            background = safe_str(first.get("fact", str(first)))
         else:
-            story.append(Paragraph(f"<b>{i}.</b> {esc(item)}", ST["body_sm"]))
-
-
-def build_final_report(story, fr):
-    story.append(Paragraph("5. 最终报告 / Final Report", ST["h1"]))
-    story.append(make_divider())
-
-    build_bilingual_list(story, fr.get("verified_facts", []),
-                         "Verified Facts", "已验证事实", "&#10004;", "#1B5E20")
-    story.append(make_divider())
-
-    build_bilingual_list(story, fr.get("probable_conclusions", []),
-                         "Probable Conclusions", "可能结论", "&#9654;", "#0D47A1")
-    story.append(make_divider())
-
-    build_bilingual_list(story, fr.get("contested_points", []),
-                         "Contested Points", "争议要点", "&#9888;", "#E65100")
-    story.append(make_divider())
-
-    build_bilingual_list(story, fr.get("to_verify", []),
-                         "Items to Verify", "待验证事项", "&#10067;", "#616161")
-
-    story.append(PageBreak())
-
-
-# ═════════════════════════════════════════════════════════════
-# Scenario Outlook
-# ═════════════════════════════════════════════════════════════
-def build_scenario(story, fr):
-    story.append(Paragraph("6. 情景展望 / Scenario Outlook", ST["h1"]))
-    story.append(make_divider())
-
-    outlook = fr.get("scenario_outlook", {})
-
-    story.append(Paragraph("<b>基线情景 / Base Case</b>", ST["h2"]))
-    bc = outlook.get("base_case", "")
-    if " / " in bc:
-        en, zh = bc.split(" / ", 1)
-        bilingual(en, zh, ST["body"], ST["body_zh"], story)
+            background = safe_str(first)
     else:
-        story.append(Paragraph(esc(bc), ST["body"]))
+        background = ""
 
-    def build_trigger_list(title_zh, title_en, triggers, icon, icon_color):
-        story.append(Paragraph(
-            f"<font color='{icon_color}'>{icon}</font> <b>{title_zh} / {title_en}</b>",
-            ST["h2"]
-        ))
-        for tr in triggers:
-            if " / " in tr:
-                en, zh = tr.split(" / ", 1)
-                story.append(Paragraph(f"&#8226; {esc(en)}", ST["body_sm"]))
-                story.append(Paragraph(esc(zh), ST["body_sm_zh"]))
-            else:
-                story.append(Paragraph(f"&#8226; {esc(tr)}", ST["body_sm"]))
+    info_rows = [
+        ("辩题 Topic", topic),
+        ("轮次 Rounds", f"{round_count} 轮"),
+        ("日期 Date", created_at),
+        ("正方 Pro", config.get("pro_model", "辩论正方 Pro Side")),
+        ("反方 Con", config.get("con_model", "辩论反方 Con Side")),
+        ("裁判 Judge", config.get("judge_model", "独立裁判 Independent Judge")),
+        ("背景 Context", background),
+    ]
 
-    build_trigger_list("降级触发因素", "Upside Triggers (De-escalation)",
-                       outlook.get("upside_triggers", []), "&#9650;", "#1B5E20")
-    build_trigger_list("升级触发因素", "Downside Triggers (Escalation)",
-                       outlook.get("downside_triggers", []), "&#9660;", "#B71C1C")
-    build_trigger_list("证伪条件", "Falsification Conditions",
-                       outlook.get("falsification_conditions", []), "&#10060;", "#616161")
-
-    story.append(make_divider())
-
-    # Watchlist
-    story.append(Paragraph(
-        "<font color='#E65100'>&#9888;</font> <b>24小时监控清单 / 24-Hour Watchlist</b>",
-        ST["h2"]
-    ))
-
-    for i, wl in enumerate(fr.get("watchlist_24h", []), 1):
-        item_text = wl.get("item", "")
-        reversal = wl.get("reversal_trigger", "")
-        source = wl.get("monitoring_source", "")
-
-        if " / " in item_text:
-            en, zh = item_text.split(" / ", 1)
-            story.append(Paragraph(f"<b>{i}. {esc(en)}</b>", ST["body"]))
-            story.append(Paragraph(esc(zh), ST["body_zh"]))
-        else:
-            story.append(Paragraph(f"<b>{i}. {esc(item_text)}</b>", ST["body"]))
-
-        if reversal:
-            if " / " in reversal:
-                en, zh = reversal.split(" / ", 1)
-                story.append(Paragraph(f"<font color='#B71C1C'><b>逆转触发:</b></font> {esc(en)}", ST["rc_text"]))
-                story.append(Paragraph(esc(zh), ST["rc_text_zh"]))
-            else:
-                story.append(Paragraph(f"<font color='#B71C1C'><b>逆转触发:</b></font> {esc(reversal)}", ST["rc_text"]))
-
-        if source:
-            story.append(Paragraph(f"<font color='#0D47A1'><b>监控来源:</b></font> {esc(source)}", ST["rc_text"]))
-
-        story.append(Spacer(1, 2*mm))
-
-
-# ═════════════════════════════════════════════════════════════
-# Closing page
-# ═════════════════════════════════════════════════════════════
-def build_closing(story):
-    story.append(PageBreak())
-    story.append(Spacer(1, 60*mm))
     rows = [
-        Paragraph("报告结束 / End of Report", ST["cover_en"]),
-        Spacer(1, 6*mm),
-        Paragraph("Generated by Insight Debator Multi-Agent System", ST["cover_sub"]),
-        Paragraph("由 Insight Debator 多智能体系统生成", ST["cover_sub"]),
-        Spacer(1, 6*mm),
-        Paragraph("正方 Pro: Claude Sonnet | 反方 Con: Claude Sonnet | 裁判 Judge: Claude Opus", ST["cover_date"]),
-        Paragraph("编排 Orchestrator: Claude Sonnet | 基础设施 Infrastructure: Claude Code", ST["cover_date"]),
-        Spacer(1, 6*mm),
-        Paragraph("本报告反映截至2026年3月9日的信息状态。", ST["cover_date"]),
-        Paragraph("This report reflects information as of March 9, 2026.", ST["cover_date"]),
+        [Paragraph("<b>项目 Item</b>", ST["cell_header"]),
+         Paragraph("<b>内容 Content</b>", ST["cell_header"])],
     ]
-    t = Table([[r] for r in rows], colWidths=[170*mm])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), C_COVER_BG),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-        ("LEFTPADDING", (0, 0), (-1, -1), 15),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 15),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+    for label, value in info_rows:
+        rows.append([
+            Paragraph(esc(label), ST["cell"]),
+            Paragraph(esc(value), ST["cell"]),
+        ])
+
+    col_widths = [30 * mm, CONTENT_W - 30 * mm]
+    story.append(make_table(rows, col_widths))
+    story.append(Spacer(1, 4 * mm))
+
+
+def build_round_overview_table(story, rounds_data):
+    """Section 2: 三轮辩论核心交锋 table."""
+    story.append(Paragraph("核心交锋 Core Clashes", ST["h2"]))
+
+    header = [
+        Paragraph("<b>轮次</b>", ST["cell_header"]),
+        Paragraph("<b>正方核心论点 Pro Claims</b>", ST["cell_header"]),
+        Paragraph("<b>反方核心论点 Con Claims</b>", ST["cell_header"]),
+        Paragraph("<b>裁判裁定 Ruling</b>", ST["cell_header"]),
+    ]
+    rows = [header]
+
+    for r, (pro, con, judge) in enumerate(rounds_data, 1):
+        cn = CN_NUMS.get(r, str(r))
+
+        pro_claims = "<br/>".join(
+            f"{circled_num(i)} {esc(safe_str(a.get('claim_text', '')))}"
+            for i, a in enumerate(pro.get("arguments", []))
+        )
+        con_claims = "<br/>".join(
+            f"{circled_num(i)} {esc(safe_str(a.get('claim_text', '')))}"
+            for i, a in enumerate(con.get("arguments", []))
+        )
+        judge_summary = esc(safe_str(judge.get("round_summary", "")))
+
+        rows.append([
+            Paragraph(f"第{cn}轮<br/>R{r}", ST["cell"]),
+            Paragraph(pro_claims, ST["cell_pro"]),
+            Paragraph(con_claims, ST["cell_con"]),
+            Paragraph(judge_summary, ST["cell_sm"]),
+        ])
+
+    col_widths = [12 * mm, 0.30 * CONTENT_W, 0.30 * CONTENT_W, CONTENT_W - 12 * mm - 0.60 * CONTENT_W]
+    story.append(make_table(rows, col_widths))
+    story.append(Spacer(1, 4 * mm))
+
+
+def build_conclusions_table(story, final_report):
+    """Section 3: 最终结论 table."""
+    story.append(Paragraph("最终结论 Conclusions", ST["h2"]))
+
+    header = [
+        Paragraph("<b>类别 Category</b>", ST["cell_header"]),
+        Paragraph("<b>数量 Count</b>", ST["cell_header"]),
+        Paragraph("<b>核心内容 Key Content</b>", ST["cell_header"]),
+    ]
+
+    vf = final_report.get("verified_facts", [])
+    pc = final_report.get("probable_conclusions", [])
+    cp = final_report.get("contested_points", [])
+
+    def summarize_list(items, max_items=3):
+        parts = []
+        for item in items[:max_items]:
+            if isinstance(item, dict):
+                text = (item.get("fact") or item.get("conclusion")
+                        or item.get("point") or item.get("text") or str(item))
+            else:
+                text = str(item)
+            parts.append(esc(safe_str(text)))
+        if len(items) > max_items:
+            parts.append(f"... ({len(items)} total)")
+        return "<br/>".join(parts)
+
+    rows = [
+        header,
+        [Paragraph("已验证事实 Verified", ST["cell"]),
+         Paragraph(str(len(vf)), ST["cell"]),
+         Paragraph(summarize_list(vf), ST["cell_sm"])],
+        [Paragraph("可能结论 Probable", ST["cell"]),
+         Paragraph(str(len(pc)), ST["cell"]),
+         Paragraph(summarize_list(pc), ST["cell_sm"])],
+        [Paragraph("争议要点 Contested", ST["cell"]),
+         Paragraph(str(len(cp)), ST["cell"]),
+         Paragraph(summarize_list(cp), ST["cell_sm"])],
+    ]
+
+    col_widths = [28 * mm, 16 * mm, CONTENT_W - 44 * mm]
+    story.append(make_table(rows, col_widths))
+    story.append(Spacer(1, 4 * mm))
+
+
+def build_watchlist_table(story, final_report):
+    """Section 4: 24小时监控清单 table."""
+    watchlist = final_report.get("watchlist_24h", [])
+    if not watchlist:
+        return
+
+    story.append(Paragraph("24小时监控清单 24h Watchlist", ST["h2"]))
+
+    header = [
+        Paragraph("<b>监控项 Item</b>", ST["cell_header"]),
+        Paragraph("<b>逆转触发条件 Reversal Trigger</b>", ST["cell_header"]),
+    ]
+    rows = [header]
+    for wl in watchlist:
+        rows.append([
+            Paragraph(esc(safe_str(wl.get("item", ""))), ST["cell"]),
+            Paragraph(esc(safe_str(wl.get("reversal_trigger", ""))), ST["cell_sm"]),
+        ])
+
+    col_widths = [0.35 * CONTENT_W, 0.65 * CONTENT_W]
+    story.append(make_table(rows, col_widths))
+    story.append(Spacer(1, 4 * mm))
+
+
+def build_overall_judgment(story, final_report):
+    """Section 5: 总判断 highlighted box."""
+    base_case = final_report.get("scenario_outlook", {}).get("base_case", "")
+    verdict = final_report.get("verdict_summary", "")
+    if not base_case and not verdict:
+        return
+
+    story.append(Paragraph("总判断 Overall Judgment", ST["h2"]))
+
+    content = []
+    if verdict:
+        content.append(Paragraph(f"<b>{esc(verdict)}</b>", ST["highlight"]))
+        content.append(Spacer(1, 2 * mm))
+    if base_case:
+        content.append(Paragraph(esc(base_case), ST["body"]))
+
+    box = Table([[content]], colWidths=[CONTENT_W - 8 * mm])
+    box.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), HexColor("#EFEBE9")),
+        ("BOX", (0, 0), (-1, -1), 1.5, C_JUDGE),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
     ]))
-    story.append(t)
+    story.append(box)
+    story.append(Spacer(1, 4 * mm))
+
+
+def build_round_detail(story, round_num, pro, con, judge, is_first=True):
+    """Per-round detail exchange table."""
+    cn = CN_NUMS.get(round_num, str(round_num))
+
+    if not is_first:
+        story.append(Spacer(1, 4 * mm))
+
+    story.append(Paragraph(f"第{cn}轮交锋 Round {round_num} Detail", ST["h2"]))
+
+    # Legend
+    legend_text = (
+        '<font color="#B71C1C">[R]</font> = 被对方反驳 Rebutted &nbsp;&nbsp;'
+        '<font color="#E65100">[J]</font> = 被裁判质疑 Questioned &nbsp;&nbsp;'
+        '<font color="#212121">[X]</font> = 被事实推翻 Overturned'
+    )
+    story.append(Paragraph(legend_text, ST["legend"]))
+    story.append(Spacer(1, 2 * mm))
+
+    header = [
+        Paragraph("<b>原始论点 Claim</b>", ST["cell_header"]),
+        Paragraph("<b>谁的 Side</b>", ST["cell_header"]),
+        Paragraph("<b>被谁打 Attacked</b>", ST["cell_header"]),
+        Paragraph("<b>怎么打的 How</b>", ST["cell_header"]),
+        Paragraph("<b>裁判怎么说 Judge Says</b>", ST["cell_header"]),
+    ]
+    rows = [header]
+
+    # Collect all arguments from both sides
+    all_args = []
+    for arg in pro.get("arguments", []):
+        all_args.append(("正方 Pro", arg, con, judge))
+    for arg in con.get("arguments", []):
+        all_args.append(("反方 Con", arg, pro, judge))
+
+    for side, arg, opponent, j in all_args:
+        claim_id = arg.get("claim_id", "")
+        claim_text = safe_str(arg.get("claim_text", ""))
+
+        attackers = []
+        attack_details = []
+        judge_says = []
+
+        # Opponent rebuttals targeting this claim
+        for reb in opponent.get("rebuttals", []):
+            target = reb.get("target_claim_id", "")
+            if target == claim_id or _claim_matches(target, side, arg, pro, con):
+                opp_label = "反方 Con" if side.startswith("正方") else "正方 Pro"
+                attackers.append(red_marker(f"{opp_label} 反驳 Rebutted"))
+                attack_details.append(safe_str(reb.get("rebuttal_text", "")))
+
+        # Judge causal validity flags
+        for flag in j.get("causal_validity_flags", []):
+            if flag.get("claim_id") == claim_id or _claim_matches(flag.get("claim_id", ""), side, arg, pro, con):
+                sev = flag.get("severity", "")
+                attackers.append(orange_marker(f"裁判质疑 Questioned ({sev})"))
+                attack_details.append(safe_str(flag.get("issue", "")))
+
+        # Judge verification results
+        for vr in j.get("verification_results", []):
+            if vr.get("claim_id") == claim_id or _claim_matches(vr.get("claim_id", ""), side, arg, pro, con):
+                status = vr.get("new_status", "")
+                if status in ("contested", "stale"):
+                    attackers.append(orange_marker(f"判定 Ruled {status}"))
+                judge_says.append(safe_str(vr.get("reasoning", "")))
+
+        attackers_text = "<br/>".join(attackers) if attackers else "—"
+        details_text = "<br/>".join(esc(d) for d in attack_details) if attack_details else "—"
+        judge_text = "<br/>".join(esc(j_text) for j_text in judge_says) if judge_says else "—"
+
+        side_style = ST["cell_pro"] if side.startswith("正方") else ST["cell_con"]
+
+        rows.append([
+            Paragraph(esc(claim_text), ST["cell_sm"]),
+            Paragraph(side, side_style),
+            Paragraph(attackers_text, ST["cell_sm"]),
+            Paragraph(details_text, ST["cell_sm"]),
+            Paragraph(judge_text, ST["cell_sm"]),
+        ])
+
+    col_widths = [
+        0.20 * CONTENT_W,
+        0.06 * CONTENT_W,
+        0.14 * CONTENT_W,
+        0.28 * CONTENT_W,
+        0.32 * CONTENT_W,
+    ]
+    story.append(make_table(rows, col_widths))
+
+
+def _claim_matches(target_id, side, arg, pro, con):
+    """Match target_claim_id like 'clm_1_pro_1' to the right argument by index."""
+    if not target_id:
+        return False
+    parts = target_id.split("_")
+    if len(parts) < 4:
+        return False
+    try:
+        target_side = parts[2].lower()
+        target_idx = int(parts[3]) - 1
+    except (ValueError, IndexError):
+        return False
+
+    side_lower = "pro" if side.startswith("正方") else "con"
+    if target_side != side_lower:
+        return False
+
+    source = pro if side.startswith("正方") else con
+    args = source.get("arguments", [])
+    return 0 <= target_idx < len(args) and args[target_idx] == arg
 
 
 # ═════════════════════════════════════════════════════════════
 # Page template
 # ═════════════════════════════════════════════════════════════
-def add_page_number(canvas_obj, doc):
+
+def add_page_decorations(canvas_obj, doc):
+    """Add page number and thin lines."""
     canvas_obj.saveState()
-    canvas_obj.setFont("ArialUnicode", 8)
+    canvas_obj.setFont(FONT_NAME, 7)
     canvas_obj.setFillColor(C_MUTED)
     page = canvas_obj.getPageNumber()
-    canvas_obj.drawCentredString(A4[0] / 2, 15*mm, f"Insight Debator | 伊朗局势分析 | 第 {page} 页")
+    canvas_obj.drawCentredString(PAGE_W / 2, 12 * mm, f"Insight Debator 洞察辩论 | 第{page}页 Page {page}")
     canvas_obj.setStrokeColor(C_DIVIDER)
     canvas_obj.setLineWidth(0.5)
-    canvas_obj.line(20*mm, A4[1] - 15*mm, A4[0] - 20*mm, A4[1] - 15*mm)
-    canvas_obj.line(20*mm, 20*mm, A4[0] - 20*mm, 20*mm)
+    canvas_obj.line(20 * mm, PAGE_H - 15 * mm, PAGE_W - 20 * mm, PAGE_H - 15 * mm)
+    canvas_obj.line(20 * mm, 18 * mm, PAGE_W - 20 * mm, 18 * mm)
     canvas_obj.restoreState()
 
 
 # ═════════════════════════════════════════════════════════════
 # Main
 # ═════════════════════════════════════════════════════════════
+
 def main():
-    rounds = []
-    for r in range(1, 4):
-        pro = load_json(os.path.join(BASE, f"rounds/round_{r}/pro_turn.json"))
-        con = load_json(os.path.join(BASE, f"rounds/round_{r}/con_turn.json"))
-        judge = load_json(os.path.join(BASE, f"rounds/round_{r}/judge_ruling.json"))
-        rounds.append((pro, con, judge))
+    if len(sys.argv) < 2:
+        print("Usage: python3 scripts/generate_debate_pdf.py <workspace_path> [output_filename]")
+        sys.exit(1)
 
-    fr = load_json(os.path.join(BASE, "reports/final_report.json"))
+    workspace = os.path.abspath(sys.argv[1])
+    output_name = sys.argv[2] if len(sys.argv) > 2 else "executive_summary.pdf"
+    output_name = os.path.basename(output_name)  # Sanitize: prevent path traversal
 
+    if not os.path.isdir(workspace):
+        print(f"Error: workspace not found: {workspace}")
+        sys.exit(1)
+
+    # Register CJK font
+    if not register_fonts():
+        print("Error: no CJK font found and download failed.")
+        sys.exit(1)
+
+    init_styles()
+
+    # Load config
+    config = load_json(os.path.join(workspace, "config.json"))
+    round_count = config.get("round_count", detect_round_count(workspace))
+
+    # Load round data — prefer bilingual version if available
+    bilingual_path = os.path.join(workspace, "reports/rounds_bilingual.json")
+    bilingual = load_json(bilingual_path)
+    bilingual_rounds = bilingual.get("rounds", []) if bilingual else []
+    if bilingual_rounds:
+        print(f"Using bilingual round data: {bilingual_path}")
+
+    rounds_data = []
+    for r in range(1, round_count + 1):
+        if bilingual_rounds and r <= len(bilingual_rounds):
+            rd = bilingual_rounds[r - 1]
+            pro = rd.get("pro", {})
+            con = rd.get("con", {})
+            judge = rd.get("judge", {})
+        else:
+            round_dir = os.path.join(workspace, f"rounds/round_{r}")
+            pro = load_json(os.path.join(round_dir, "pro_turn.json"))
+            con = load_json(os.path.join(round_dir, "con_turn.json"))
+            judge = load_json(os.path.join(round_dir, "judge_ruling.json"))
+        rounds_data.append((pro, con, judge))
+
+    # Load final report
+    final_report = load_json(os.path.join(workspace, "reports/final_report.json"))
+
+    # Ensure output directory
+    reports_dir = os.path.join(workspace, "reports")
+    os.makedirs(reports_dir, exist_ok=True)
+    output_path = os.path.join(reports_dir, output_name)
+
+    # Build PDF
     doc = SimpleDocTemplate(
-        OUTPUT, pagesize=A4,
-        leftMargin=20*mm, rightMargin=20*mm,
-        topMargin=22*mm, bottomMargin=25*mm,
-        title="Insight Debator: 伊朗局势分析",
-        author="Insight Debator Multi-Agent System",
+        output_path,
+        pagesize=A4,
+        leftMargin=20 * mm, rightMargin=20 * mm,
+        topMargin=22 * mm, bottomMargin=25 * mm,
+        title=config.get("topic", "Debate Report"),
+        author="Insight Debator",
     )
 
     story = []
-    build_cover(story)
-    build_toc(story)
-    build_exec_summary(story, fr)
 
-    for i, (pro, con, judge) in enumerate(rounds, 1):
-        build_round(story, i, pro, con, judge)
+    # Part 1: Executive Summary
+    build_basic_info_table(story, config, final_report)
+    build_round_overview_table(story, rounds_data)
+    build_conclusions_table(story, final_report)
+    build_watchlist_table(story, final_report)
+    build_overall_judgment(story, final_report)
 
-    build_final_report(story, fr)
-    build_scenario(story, fr)
-    build_closing(story)
+    # Part 2: Round Details
+    story.append(PageBreak())
+    for r, (pro, con, judge) in enumerate(rounds_data, 1):
+        build_round_detail(story, r, pro, con, judge, is_first=(r == 1))
 
-    doc.build(story, onFirstPage=add_page_number, onLaterPages=add_page_number)
-    print(f"PDF generated: {OUTPUT}")
+    try:
+        doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
+    except Exception as e:
+        print(f"Error: PDF build failed: {e}")
+        sys.exit(1)
+    print(f"PDF generated: {output_path}")
 
 
 if __name__ == "__main__":
