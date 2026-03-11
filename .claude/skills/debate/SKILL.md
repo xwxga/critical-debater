@@ -5,7 +5,7 @@ description: >
   "debate", "start a debate", "run a debate on", "argue about", or provides
   a topic they want analyzed from multiple perspectives with evidence verification.
   启动多agent辩论系统，支持证据验证、因果链分析和结构化裁定。
-version: 0.3.0
+version: 0.2.0
 license: MIT-0
 metadata:
   openclaw:
@@ -33,40 +33,19 @@ Supported flags:
 - `--domain <value>`: geopolitics | tech | health | finance | philosophy | culture | general (default: auto-infer from topic)
 - `--depth <value>`: quick | standard | deep (default: standard)
 - `--rounds <N>`: number of rounds (default: 3)
-- `--mode <value>`: balanced | red_team | pre_mortem (default: balanced)
+- `--mode <value>`: balanced | red_team (default: balanced)
 - `--speculation <value>`: conservative | moderate | exploratory (default: moderate)
 - `--output <value>`: full_report | executive_summary | decision_matrix (default: full_report)
 - `--language <value>`: en | zh | bilingual (default: bilingual)
 - `--focus <value>`: comma-separated focus areas (default: none)
-- `--template <name>`: load a preset template from `.claude/templates/<name>.json`
-- `--pdf <value>`: Comma-separated list of additional PDF outputs to generate.
-  Default: executive_summary (ALWAYS generated, cannot be disabled)
-  Additional options: full, decision_matrix, red_team
-  Example: `--pdf full,decision_matrix` → generates executive_summary PDF + full report PDF + decision matrix PDF
 
 Examples:
 - `/debate "Bitcoin vs Gold as store of value"` → all defaults, domain auto-inferred as finance
 - `/debate "React vs Vue" --domain tech --depth deep --speculation exploratory`
 - `/debate "Is remote work productive?" --mode red_team --output executive_summary`
 - `/debate "中东局势" --rounds 5 --focus "oil prices,shipping routes"`
-- `/debate "Should we invest in NVIDIA?" --template investment`
-- `/debate "Should we invest in NVIDIA?" --template investment --depth quick`
 
 **Auto-inference / 自动推断:** If `--domain` is not provided, use LLM to infer the most appropriate domain from the topic text. Include the inferred domain in the config.json passed to the orchestrator.
-
-### Template Support (v3) / 模板支持
-
-If the user provides `--template <name>`:
-1. Read `.claude/templates/<name>.json`
-2. Apply `config_overrides` as default values
-3. User-provided flags override template defaults
-4. If template file not found, warn user and proceed with standard defaults
-
-Examples:
-- `/debate "Should we invest in NVIDIA?" --template investment`
-  → Applies investment template: domain=finance, depth=deep, output=decision_matrix
-- `/debate "Should we invest in NVIDIA?" --template investment --depth quick`
-  → Same as above but overrides depth to quick
 
 ## Execution / 执行
 
@@ -82,7 +61,7 @@ Rounds: <parsed rounds>
 Config: <all parsed config fields as JSON>
 Project root: <current working directory>
 
-Write the full config to debate-workspace/config.json before proceeding.
+Write the full config to the workspace config.json before proceeding.
 
 Follow your system prompt to execute all 4 phases:
 1. Initialize workspace (run scripts/init-workspace.sh, gather evidence via WebSearch/WebFetch)
@@ -91,8 +70,8 @@ Follow your system prompt to execute all 4 phases:
 4. Offer scheduled refresh setup
 
 Key references:
-- Data contracts: .agents/skills/_shared/references/data-contracts.md
-- Project rules: .claude/CLAUDE.md
+- Data contracts: .claude/skills/source-ingest/references/data-contracts.md
+- Project rules: docs/debate_system_v2.md
 - Scripts: scripts/init-workspace.sh, scripts/validate-json.sh, scripts/hash-snippet.sh, scripts/append-audit.sh
 
 Present the final report in a readable, bilingual (Chinese + English) format to the user.
@@ -126,7 +105,7 @@ IMPORTANT MODE CHANGE:
 
 - The debate runs sequentially within each round: Pro → Con → Judge
 - Each agent runs as an isolated subagent
-- All state is persisted to `debate-workspace/` as JSON files
+- All state is persisted to the workspace directory as JSON files
 - The system guarantees real-time information access (can fetch data from last 24 hours)
 - Evidence chains may span any timeframe — historical evidence is valid
 - No total scores — output uses evidence states (verified, contested, unverified, stale)
