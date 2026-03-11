@@ -1,10 +1,11 @@
-# Insight Debator — Project Instructions
-# Insight Debator — 项目指令
+# Critical Debater — Project Instructions
+# Critical Debater — 项目指令
 
 ## Changelog / 变更日志
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | 项目更名 Insight Debator → Critical Debater / Renamed project |
 | 2026-03-11 | Claude | v0.5.0 升级：修复 6 个断开的 symlink，恢复 SKILL.md，全部 skill 统一版本号 / v0.5.0 upgrade: fix 6 broken symlinks, recover SKILL.md files, unify all skill versions |
 | 2026-03-11 | Claude | v0.2.0 升级：Skills 合并到 .claude/skills/，移除 PDF 和 pre_mortem，动态 workspace 路径 / v0.2.0 upgrade: consolidated skills to .claude/skills/, removed PDF and pre_mortem, dynamic workspace paths |
 | 2026-03-10 | Claude | 添加 v3 升级路线图引用 / Added v3 upgrade roadmap reference |

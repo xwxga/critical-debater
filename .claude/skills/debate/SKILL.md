@@ -11,7 +11,7 @@ metadata:
   openclaw:
     requires:
       bins: [bash, jq, python3, shasum]
-    homepage: "https://github.com/xwxga/insight-debator"
+    homepage: "https://github.com/xwxga/critical-debater"
     emoji: "🏛️"
 ---
 
@@ -24,8 +24,8 @@ metadata:
 # /debate — Multi-Agent Debate System
 # /debate — 多Agent辩论系统
 
-You are launching the Insight Debator multi-agent debate system.
-你正在启动 Insight Debator 多 agent 辩论系统。
+You are launching the Critical Debater multi-agent debate system.
+你正在启动 Critical Debater 多 agent 辩论系统。
 
 ## Arguments / 参数
 
