@@ -5,6 +5,7 @@
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.5.0 升级：修复 6 个断开的 symlink，恢复 SKILL.md，全部 skill 统一版本号 / v0.5.0 upgrade: fix 6 broken symlinks, recover SKILL.md files, unify all skill versions |
 | 2026-03-11 | Claude | v0.2.0 升级：Skills 合并到 .claude/skills/，移除 PDF 和 pre_mortem，动态 workspace 路径 / v0.2.0 upgrade: consolidated skills to .claude/skills/, removed PDF and pre_mortem, dynamic workspace paths |
 | 2026-03-10 | Claude | 添加 v3 升级路线图引用 / Added v3 upgrade roadmap reference |
 | 2026-03-09 | Claude | 初始创建：项目指令、工作方式、证据规则、agent 隔离、脚本引用 / Initial creation |
@@ -13,10 +14,10 @@
 
 ## Project Overview / 项目概述
 
-Multi-agent debate system with 4 agents (Pro, Con, Judge, Orchestrator), 9 skills (v0.2.0), and file-based state management.
-多 agent 辩论系统：4 个 agent、9 个 skill（v0.2.0）、基于文件的状态管理。
+Multi-agent debate system with 4 agents (Pro, Con, Judge, Orchestrator), 9 skills (v0.5.0), and file-based state management.
+多 agent 辩论系统：4 个 agent、9 个 skill（v0.5.0）、基于文件的状态管理。
 
-**Current version / 当前版本:** v0.2.0 — Skills consolidated in `.claude/skills/`, no PDF output (Markdown report instead), no `pre_mortem` mode, dynamic workspace paths.
+**Current version / 当前版本:** v0.5.0 — Fixed broken symlinks, recovered all SKILL.md files, unified skill versions. Skills in `.claude/skills/`, Markdown report output, dynamic workspace paths.
 
 Design spec: `docs/debate_system_v2.md`
 v3 upgrade roadmap: `docs/upgrade-roadmap-v3.md`
@@ -26,7 +27,7 @@ v3 task prompts: `docs/tasks/phase-{1,2,3,4}-*.md`
 ## Working Approach / 工作方式
 
 1. **LLM first / LLM 优先** — 阅读、判断、总结、分类、提取、论证构建、因果审计 → 全部用 LLM
-2. **Existing skill second / 现有 skill 其次** — 复用项目内 8 个 skill + Claude Code 内建工具（WebSearch, WebFetch, Agent tool）
+2. **Existing skill second / 现有 skill 其次** — 复用项目内 9 个 skill + Claude Code 内建工具（WebSearch, WebFetch, Agent tool）
 3. **Deterministic code last / 确定性代码最后** — 仅用于 `scripts/` 中的操作：workspace 初始化、JSON 验证、hash、审计日志追加
 
 ## Evidence Rules / 证据规则

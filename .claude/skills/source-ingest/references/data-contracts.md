@@ -4,6 +4,7 @@
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.5.0 版本统一 / v0.5.0 version unification |
 | 2026-03-11 | Claude | v0.2.0 升级：移除 PDF 相关字段、pre_mortem 模式、RoundsBilingual schema；新增 report_path / v0.2.0 upgrade: removed PDF fields, pre_mortem mode, RoundsBilingual schema; added report_path |
 | 2026-03-11 | Claude | 添加 RoundsBilingual schema; 明确 pdf_outputs 叠加行为 / Added RoundsBilingual schema; clarified pdf_outputs stacking behavior |
 | 2026-03-10 22:15 | Claude | FinalReport 添加 verdict_summary 字段; DebateConfig 添加 round_count/pro_model/con_model/judge_model/created_at / Added verdict_summary to FinalReport; added round_count/pro_model/con_model/judge_model/created_at to DebateConfig |

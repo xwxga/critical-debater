@@ -6,7 +6,7 @@ description: >
   scenario outlook", "produce the debate summary", or "compile verified facts, contested
   points, and recommendations". Generates the final debate report from all rounds' data.
   从所有回合数据生成最终辩论报告，含结论画像和 Markdown 报告。
-version: 0.2.0
+version: 0.5.0
 license: MIT-0
 metadata:
   openclaw:

@@ -5,7 +5,7 @@ description: >
   "debate", "start a debate", "run a debate on", "argue about", or provides
   a topic they want analyzed from multiple perspectives with evidence verification.
   启动多agent辩论系统，支持证据验证、因果链分析和结构化裁定。
-version: 0.2.0
+version: 0.5.0
 license: MIT-0
 metadata:
   openclaw:
