@@ -72,7 +72,7 @@ Follow the JudgeAudit skill workflow. Key steps:
 **Output / 输出:**
 Write JudgeRuling JSON to the file path specified by the orchestrator.
 Validate with `scripts/validate-json.sh <file> judge_ruling`.
-Read data contracts: `.agents/skills/_shared/references/data-contracts.md`
+Read data contracts: `.claude/skills/source-ingest/references/data-contracts.md`
 
 **IMPARTIALITY RULES (NON-NEGOTIABLE) / 公正规则（不可协商）:**
 1. NEVER express preference for either side / 绝不表达偏好

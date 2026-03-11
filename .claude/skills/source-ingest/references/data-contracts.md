@@ -305,7 +305,7 @@ Final synthesis output after all debate rounds.
   ],
   "contested_points": [
     {
-      "point": "The contested claim or issue (bilingual) / 争议的声明或问题（双语）",
+      "point": "The contested claim or issue",
       "claim_ids": ["clm_1_pro_2", "clm_2_con_1"],
       "pro_position": "Pro's strongest argument on this point with evidence summary / 正方在该点上的最强论点及证据摘要",
       "con_position": "Con's strongest argument on this point with evidence summary / 反方在该点上的最强论点及证据摘要",
@@ -362,7 +362,7 @@ Final synthesis output after all debate rounds.
     "meta_pattern": "Overarching historical pattern, if any..."
   },
   "executive_summary": {
-    "summary_paragraph": "One-paragraph bilingual summary...",
+    "summary_paragraph": "One-paragraph executive summary...",
     "top_verified_facts": ["..."],
     "top_contested_points": ["..."],
     "base_case_outlook": "...",
@@ -385,7 +385,7 @@ Final synthesis output after all debate rounds.
   "conclusion_profiles": [
     {
       "conclusion_id": "concl_1",
-      "conclusion_text": "Conclusion description (bilingual)",
+      "conclusion_text": "Conclusion description",
       "source_claims": ["clm_1_pro_1", "clm_2_con_3"],
       "profile": {
         "probability": {
@@ -481,6 +481,9 @@ Multi-dimensional characterization of each major conclusion. Goes far beyond pro
 
 **Key rule / 关键规则:** Each dimension uses LLM semantic judgment, NOT mechanical scoring.
 每个维度用 LLM 语义判断，不要用机械评分。
+
+> All FinalReport JSON fields are English-only. Chinese translation appears in debate_report.md as an appended section.
+> FinalReport 的所有 JSON 字段仅使用英文。中文翻译出现在 debate_report.md 的附加部分。
 
 ---
 

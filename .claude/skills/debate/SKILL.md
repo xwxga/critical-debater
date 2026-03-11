@@ -15,6 +15,12 @@ metadata:
     emoji: "🏛️"
 ---
 
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
+
 # /debate — Multi-Agent Debate System
 # /debate — 多Agent辩论系统
 

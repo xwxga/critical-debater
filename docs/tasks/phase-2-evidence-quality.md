@@ -22,7 +22,7 @@ Depends on Phase 1 (domain field in config.json).
 ## Task 1: Extend EvidenceItem Schema for Social Media
 ## 任务 1：扩展 EvidenceItem Schema 支持社交媒体
 
-**File:** `.agents/skills/_shared/references/data-contracts.md`
+**File:** `.claude/skills/source-ingest/references/data-contracts.md`
 
 **Action:** Add 3 new optional fields to the EvidenceItem schema:
 
@@ -55,7 +55,7 @@ Add documentation:
 ## Task 2: Add Social Media Pre-Screen to SourceIngest
 ## 任务 2：在 SourceIngest 中添加社交媒体预筛
 
-**File:** `.agents/skills/source-ingest/SKILL.md`
+**File:** `.claude/skills/source-ingest/SKILL.md`
 
 **Action:** Add a new step between Step 3 (Normalization) and Step 4 (Deduplication):
 
@@ -91,7 +91,7 @@ For non-Twitter sources, set these fields to `null`.
 ## Task 3: Enhance EvidenceVerify for Twitter Corroboration
 ## 任务 3：增强 EvidenceVerify 的 Twitter 关联验证
 
-**File:** `.agents/skills/evidence-verify/SKILL.md`
+**File:** `.claude/skills/evidence-verify/SKILL.md`
 
 **Action:** Enhance Step 3 (Twitter Signal Validation) with corroboration tracking:
 
@@ -126,7 +126,7 @@ If ANY evidence supporting a claim has `source_type = "twitter"`:
 ## Task 4: Add Conflict Details to ClaimItem Schema
 ## 任务 4：在 ClaimItem Schema 中添加冲突明细
 
-**File:** `.agents/skills/_shared/references/data-contracts.md`
+**File:** `.claude/skills/source-ingest/references/data-contracts.md`
 
 **Action:** Add `conflict_details` field to ClaimItem schema:
 
@@ -160,7 +160,7 @@ Add documentation: `conflict_details` is populated by Judge during verification 
 ## Task 5: Update ClaimLedgerUpdate to Handle Conflict Details
 ## 任务 5：更新 ClaimLedgerUpdate 处理冲突明细
 
-**File:** `.agents/skills/claim-ledger-update/SKILL.md`
+**File:** `.claude/skills/claim-ledger-update/SKILL.md`
 
 **Action:** In the `batch_update` action workflow, add:
 
@@ -176,7 +176,7 @@ Add documentation: `conflict_details` is populated by Judge during verification 
 ## Task 6: Add Source Diversity Assessment to FinalSynthesis
 ## 任务 6：在 FinalSynthesis 中添加来源多样性评估
 
-**File:** `.agents/skills/final-synthesis/SKILL.md`
+**File:** `.claude/skills/final-synthesis/SKILL.md`
 
 **Action:** Add a new step between Step 4 (24h Watchlist) and Step 5 (Write Report):
 
@@ -218,7 +218,7 @@ Also update the FinalReport schema in data-contracts.md to include `evidence_div
 ## Task 7: Update JudgeAudit to Populate Conflict Details
 ## 任务 7：更新 JudgeAudit 填充冲突明细
 
-**File:** `.agents/skills/judge-audit/SKILL.md`
+**File:** `.claude/skills/judge-audit/SKILL.md`
 
 **Action:** In Step 1 (Independent Source Verification), add:
 

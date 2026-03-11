@@ -21,7 +21,7 @@ This phase is the foundation for all subsequent upgrades. All other phases depen
 ## Task 1: Extend config.json Schema in Data Contracts
 ## 任务 1：扩展 data-contracts.md 中的 config.json Schema
 
-**File:** `.agents/skills/_shared/references/data-contracts.md`
+**File:** `.claude/skills/source-ingest/references/data-contracts.md`
 
 **Action:** Add a new `## DebateConfig` section after the existing `## Audit Trail Entry` section.
 
@@ -54,7 +54,7 @@ Add documentation for each field (bilingual). Include:
 ## Task 2: Add Domain-Aware Credibility Guidance to SourceIngest
 ## 任务 2：在 SourceIngest 中添加领域感知可信度指导
 
-**File:** `.agents/skills/source-ingest/SKILL.md`
+**File:** `.claude/skills/source-ingest/SKILL.md`
 
 **Action:** Modify the existing credibility tier assignment in Step 3 (Normalization).
 
@@ -96,7 +96,7 @@ Read `domain` from config.json to adapt search query strategy:
 ## Task 3: Update Debate Skill to Accept Parameters
 ## 任务 3：更新 Debate Skill 接受参数
 
-**File:** `.agents/skills/debate/SKILL.md`
+**File:** `.claude/skills/debate/SKILL.md`
 
 **Action:** Expand the Arguments section to support new parameters.
 

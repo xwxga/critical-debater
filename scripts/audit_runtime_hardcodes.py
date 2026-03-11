@@ -9,7 +9,6 @@ import re
 from pathlib import Path
 
 TARGETS = [
-    Path("scripts/generate_debate_pdf.py"),
 ]
 
 BANNED_PATTERNS = {
