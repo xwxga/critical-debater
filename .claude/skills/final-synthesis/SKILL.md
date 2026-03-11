@@ -19,6 +19,12 @@ metadata:
 # FinalSynthesis
 # 最终综合
 
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| 2026-03-11 | Claude | Enrich contested points to per-point subsections; switch from inline bilingual to English JSON + two-part MD (EN first, then CN appendix) / 争议点从单行表格升级为逐点子章节；语言从行内双语改为英文 JSON + 双段 MD（英文在前，中文附后） |
+
 Generate the final debate report with verified facts, probable conclusions, contested points, scenario outlook, and 24h watchlist.
 生成包含已验证事实、可能结论、争议点、情景展望和 24h 监控清单的最终辩论报告。
 
@@ -72,9 +78,18 @@ From the final claim ledger, categorize:
 - Present with appropriate confidence qualifiers ("likely", "evidence suggests")
 
 **Contested Points / 争议点**:
-- Claims with `status = contested`
-- Include BOTH sides' strongest arguments on each contested point
-- Present the strongest version of each side's case
+- Claims with `status = contested` in the claim ledger
+- For EACH contested point, synthesize:
+  1. **The core issue / 核心问题**: What exactly is being disputed?
+  2. **Pro position / 正方立场**: Pro's strongest argument + key evidence (trace back to `rebuttals[]` and `arguments[]` across rounds)
+  3. **Con position / 反方立场**: Con's strongest argument + key evidence
+  4. **Key rebuttals / 关键反驳**: Extract the most impactful rebuttals from both sides' `rebuttals[]` arrays across all rounds. Include the rebuttal target, the counter-argument, and supporting `evidence_ids`
+  5. **Judge assessment / 裁判评估**: Summarize the Judge's `verification_results` and `causal_validity_flags` relevant to this point
+  6. **Resolution status / 解决状态**: Did the debate move toward resolution? (`unresolved` / `leaning_pro` / `leaning_con` / `partially_resolved`)
+- Use LLM semantic judgment to identify the strongest arguments — don't just dump all rebuttals
+  用 LLM 语义判断识别最强论点，不要简单堆砌所有反驳
+- Also check `conflict_details` in ClaimItem for source-level conflicts
+  同时检查 ClaimItem 中的 `conflict_details` 了解来源层面的冲突
 
 **Items Requiring Verification / 待验证项**:
 - Claims with `status = unverified`
@@ -216,21 +231,10 @@ Include in FinalReport:
 ### Step 5: Write Report / 写入报告
 
 1. Assemble into FinalReport JSON schema
-2. **Bilingual content requirement / 双语内容要求**:
-   ALL user-facing text fields MUST be bilingual: `中文内容 / English content`
-   所有面向用户的文本字段必须双语格式。辩论 agents 的原始数据可能是英文，你需要在综合时翻译为双语。
-   Affected fields / 涉及字段:
-   - `verified_facts[]` (each item)
-   - `probable_conclusions[]` (each item)
-   - `contested_points[]` (each item)
-   - `to_verify[]` (each item)
-   - `verdict_summary`
-   - `scenario_outlook.base_case`, `upside_triggers[]`, `downside_triggers[]`, `falsification_conditions[]`
-   - `watchlist_24h[].item`, `watchlist_24h[].reversal_trigger`
-   - `conclusion_profiles[].conclusion_text`, `conclusion_profiles[].profile.*.rationale`
-   - `historical_insights.key_parallels[]`, `historical_insights.conflicting_lessons[]`, `historical_insights.meta_pattern`
-   - `speculative_frontier[].premise`, `speculative_frontier[].chain_of_events`, `speculative_frontier[].impact`
-   - `evidence_diversity_assessment.geographic_diversity`, `evidence_diversity_assessment.perspective_balance`, `evidence_diversity_assessment.diversity_warning`
+2. **Language requirement / 语言要求**:
+   - All JSON fields (`final_report.json`) in **English only**
+   - Markdown report (`debate_report.md`): **English version first**, then `---` divider, then **complete Chinese translation** appended
+   - LLM translates the full report semantically, not field-by-field
 3. Write to `reports/final_report.json`
 4. Validate with `scripts/validate-json.sh <file> final_report`
 5. Log report generation via `scripts/append-audit.sh`
@@ -313,8 +317,24 @@ Structure:
 |---|---|---|---|---|
 
 ## Contested Points
-| # | Point | Pro Position | Con Position | Judge Assessment |
-|---|---|---|---|---|
+
+### CP-1: <point title>
+**Status**: <resolution_status>
+
+**Pro Position**: <pro's strongest argument + evidence refs>
+
+**Con Position**: <con's strongest argument + evidence refs>
+
+**Key Rebuttals**:
+- **[Pro → Con]** <target>: <argument> (Evidence: evi_xxx)
+- **[Con → Pro]** <target>: <argument> (Evidence: evi_yyy)
+
+**Judge Assessment**: <evaluation>
+
+---
+
+### CP-2: ...
+(repeat for each contested point, ~200-400 words each)
 
 ## Key Arguments by Round
 ### Round N
@@ -341,6 +361,35 @@ Structure:
 - Rounds: N, Mode: balanced/red_team
 - Evidence items: X, Sources verified: Y
 - Generated: <timestamp>
+
+---
+
+# 辩论报告：<topic>
+## 执行摘要
+...
+## 争议点
+### 争点-1: <标题>
+**状态**: ...
+**正方立场**: ...
+**反方立场**: ...
+**关键反驳**: ...
+**裁判评估**: ...
+
+---
+
+### 争点-2: ...
+
+## 各轮关键论点
+...
+## 情景展望
+...
+## 监控清单
+...
+## 证据清单
+...
+## 方法论
+...
+(complete semantic Chinese translation of all English sections above)
 ```
 
 ## Output Principles / 输出原则
@@ -350,4 +399,4 @@ Structure:
 - **Balanced / 平衡**: Present contested points fairly with both sides represented
 - **Actionable / 可行动**: Watchlist items should be specific enough to actually monitor
 - **Honest about uncertainty / 诚实对待不确定性**: Clearly distinguish verified from probable from unverified
-- **Bilingual / 双语**: User-facing summary includes both Chinese and English
+- **Language / 语言**: JSON in English; Markdown report has English version followed by complete Chinese translation

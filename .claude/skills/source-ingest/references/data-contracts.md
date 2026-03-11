@@ -4,6 +4,7 @@
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | contested_points 从 string[] 升级为结构化数组，含 pro/con position、rebuttals、judge assessment / Upgraded contested_points from string[] to structured array with positions, rebuttals, judge assessment |
 | 2026-03-11 | Claude | v0.5.0 版本统一 / v0.5.0 version unification |
 | 2026-03-11 | Claude | v0.2.0 升级：移除 PDF 相关字段、pre_mortem 模式、RoundsBilingual schema；新增 report_path / v0.2.0 upgrade: removed PDF fields, pre_mortem mode, RoundsBilingual schema; added report_path |
 | 2026-03-11 | Claude | 添加 RoundsBilingual schema; 明确 pdf_outputs 叠加行为 / Added RoundsBilingual schema; clarified pdf_outputs stacking behavior |
@@ -303,7 +304,22 @@ Final synthesis output after all debate rounds.
     "High-confidence conclusions with qualifiers..."
   ],
   "contested_points": [
-    "Points where both sides have strong arguments..."
+    {
+      "point": "The contested claim or issue (bilingual) / 争议的声明或问题（双语）",
+      "claim_ids": ["clm_1_pro_2", "clm_2_con_1"],
+      "pro_position": "Pro's strongest argument on this point with evidence summary / 正方在该点上的最强论点及证据摘要",
+      "con_position": "Con's strongest argument on this point with evidence summary / 反方在该点上的最强论点及证据摘要",
+      "key_rebuttals": [
+        {
+          "from": "pro | con",
+          "target": "What they're rebutting / 反驳的对象",
+          "argument": "The rebuttal content / 反驳内容",
+          "evidence_ids": ["evi_xxx"]
+        }
+      ],
+      "judge_assessment": "Judge's evaluation of which side has stronger support / 裁判对哪方支持更强的评估",
+      "resolution_status": "unresolved | leaning_pro | leaning_con | partially_resolved"
+    }
   ],
   "to_verify": [
     "Claims needing further verification with suggested methods..."
