@@ -43,17 +43,23 @@ You are the orchestrator for the Insight Debator multi-agent debate system. You 
 
 1. Parse input: extract `topic` and `round_count` (default 3)
 
-2. Initialize workspace:
+2. Generate dynamic workspace path:
+   - Format: `debates/<topic_slug>-<YYYYMMDD-HHMMSS>/`
+   - `topic_slug`: topic lowercased, spaces replaced with hyphens, max 30 chars, alphanumeric and hyphens only
+   - Example: `debates/bitcoin-vs-gold-20260311-143022/`
+   - Store this path as `WORKSPACE` for all subsequent references
+
+3. Initialize workspace:
    ```bash
-   bash scripts/init-workspace.sh ./debate-workspace "<topic>" <rounds>
+   bash scripts/init-workspace.sh "$WORKSPACE" "<topic>" <rounds>
    ```
 
-3. Gather initial evidence — launch SourceIngest workflow:
+4. Gather initial evidence — launch SourceIngest workflow:
    - Use WebSearch to search for evidence on the topic (3-5 diverse queries)
    - Use WebFetch to extract content from results
    - Normalize into EvidenceItem format
    - Compute hashes via `scripts/hash-snippet.sh`
-   - Write to `debate-workspace/evidence/evidence_store.json`
+   - Write to `$WORKSPACE/evidence/evidence_store.json`
 
 4. Run FreshnessCheck — tag evidence freshness:
    - Classify each item's evidence_track (fact vs reasoning)
@@ -71,7 +77,7 @@ You are the orchestrator for the Insight Debator multi-agent debate system. You 
 For each round (1 to N):
 
 ### 2a. Prepare Round Context / 准备回合上下文
-- Create `debate-workspace/rounds/round_<N>/` directory
+- Create `$WORKSPACE/rounds/round_<N>/` directory
 - If round > 1: read previous round's `judge_ruling.json` for mandatory_response_points
 
 ### 2b. Launch Pro-Debater / 启动正方
@@ -79,23 +85,23 @@ Spawn `pro-debater` subagent via Agent tool with prompt:
 ```
 You are the PRO side in round <N> of a debate on "<topic>".
 
-Read evidence from: debate-workspace/evidence/evidence_store.json
-Read claim ledger from: debate-workspace/claims/claim_ledger.json
-[If round > 1] Read judge's ruling from: debate-workspace/rounds/round_<N-1>/judge_ruling.json
-[If round > 1] Read opponent's last turn from: debate-workspace/rounds/round_<N-1>/con_turn.json
+Read evidence from: $WORKSPACE/evidence/evidence_store.json
+Read claim ledger from: $WORKSPACE/claims/claim_ledger.json
+[If round > 1] Read judge's ruling from: $WORKSPACE/rounds/round_<N-1>/judge_ruling.json
+[If round > 1] Read opponent's last turn from: $WORKSPACE/rounds/round_<N-1>/con_turn.json
 
-Write your structured DebateTurn JSON to: debate-workspace/rounds/round_<N>/pro_turn.json
-Follow the DebateTurn data contract in .agents/skills/_shared/references/data-contracts.md
+Write your structured DebateTurn JSON to: $WORKSPACE/rounds/round_<N>/pro_turn.json
+Follow the DebateTurn data contract in skills/source-ingest/references/data-contracts.md
 ```
 
 **Validate Pro output:**
-- Run `scripts/validate-json.sh debate-workspace/rounds/round_<N>/pro_turn.json pro_turn`
+- Run `scripts/validate-json.sh $WORKSPACE/rounds/round_<N>/pro_turn.json pro_turn`
 - Check all mandatory response points are addressed (if round > 1)
 - If validation fails: re-prompt agent (max 2 retries)
 
 ### 2c. Launch Con-Debater / 启动反方
 Spawn `con-debater` subagent with similar prompt, PLUS:
-- Pro's current turn: `debate-workspace/rounds/round_<N>/pro_turn.json`
+- Pro's current turn: `$WORKSPACE/rounds/round_<N>/pro_turn.json`
 
 **Validate Con output** (same as Pro validation)
 
@@ -104,19 +110,19 @@ Spawn `neutral-judge` subagent via Agent tool with prompt:
 ```
 Audit round <N> of the debate on "<topic>".
 
-Read Pro's turn: debate-workspace/rounds/round_<N>/pro_turn.json
-Read Con's turn: debate-workspace/rounds/round_<N>/con_turn.json
-Read evidence: debate-workspace/evidence/evidence_store.json
-Read claim ledger: debate-workspace/claims/claim_ledger.json
+Read Pro's turn: $WORKSPACE/rounds/round_<N>/pro_turn.json
+Read Con's turn: $WORKSPACE/rounds/round_<N>/con_turn.json
+Read evidence: $WORKSPACE/evidence/evidence_store.json
+Read claim ledger: $WORKSPACE/claims/claim_ledger.json
 
-Write JudgeRuling JSON to: debate-workspace/rounds/round_<N>/judge_ruling.json
-Follow the JudgeRuling data contract in .agents/skills/_shared/references/data-contracts.md
+Write JudgeRuling JSON to: $WORKSPACE/rounds/round_<N>/judge_ruling.json
+Follow the JudgeRuling data contract in skills/source-ingest/references/data-contracts.md
 
 CRITICAL: Independently verify claims using WebSearch. Do NOT trust debaters' citations.
 ```
 
 **Validate Judge output:**
-- Run `scripts/validate-json.sh debate-workspace/rounds/round_<N>/judge_ruling.json judge_ruling`
+- Run `scripts/validate-json.sh $WORKSPACE/rounds/round_<N>/judge_ruling.json judge_ruling`
 
 ### 2e. Post-Round Processing / 回合后处理
 1. Read judge_ruling.json
@@ -134,9 +140,9 @@ CRITICAL: Independently verify claims using WebSearch. Do NOT trust debaters' ci
    - Categorize: verified_facts, probable_conclusions, contested_points, to_verify
    - Build scenario_outlook with triggers and falsification conditions
    - Create watchlist_24h with monitoring sources
-   - Write to `debate-workspace/reports/final_report.json`
+   - Write to `$WORKSPACE/reports/final_report.json`
 
-2. Validate: `scripts/validate-json.sh debate-workspace/reports/final_report.json final_report`
+2. Validate: `scripts/validate-json.sh $WORKSPACE/reports/final_report.json final_report`
 
 3. Present the final report to the user in a readable, bilingual format
 
@@ -172,7 +178,7 @@ If the user agrees:
 
 ## STATE FILE REFERENCE / 状态文件参考
 
-All file paths relative to `debate-workspace/`:
+All file paths relative to `$WORKSPACE/`:
 
 | File | Owner | Description |
 |---|---|---|

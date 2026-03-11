@@ -4,6 +4,9 @@
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | contested_points 从 string[] 升级为结构化数组，含 pro/con position、rebuttals、judge assessment / Upgraded contested_points from string[] to structured array with positions, rebuttals, judge assessment |
+| 2026-03-11 | Claude | v0.5.0 版本统一 / v0.5.0 version unification |
+| 2026-03-11 | Claude | v0.2.0 升级：移除 PDF 相关字段、pre_mortem 模式、RoundsBilingual schema；新增 report_path / v0.2.0 upgrade: removed PDF fields, pre_mortem mode, RoundsBilingual schema; added report_path |
 | 2026-03-11 | Claude | 添加 RoundsBilingual schema; 明确 pdf_outputs 叠加行为 / Added RoundsBilingual schema; clarified pdf_outputs stacking behavior |
 | 2026-03-10 22:15 | Claude | FinalReport 添加 verdict_summary 字段; DebateConfig 添加 round_count/pro_model/con_model/judge_model/created_at / Added verdict_summary to FinalReport; added round_count/pro_model/con_model/judge_model/created_at to DebateConfig |
 
@@ -51,7 +54,7 @@ An individual piece of evidence from a source.
 - `fact`: Supports claims about the current state of the world / 支持关于当前世界状态的声明
 - `reasoning`: Supports mechanism explanation, historical precedent, or trend analysis / 支持机制解释、历史先例或趋势分析
 
-### Social Credibility Flag (v3) / 社交可信度标记
+### Social Credibility Flag / 社交可信度标记
 - `social_credibility_flag`: Only set for `source_type = "twitter"`. LLM pre-screens for fake news patterns. For non-Twitter sources, set to `null`.
   仅对 Twitter 来源设置。LLM 预筛假新闻特征。非 Twitter 来源设为 `null`。
 - `verification_priority`: Derived from social_credibility_flag. `likely_unreliable` → `high`, `needs_verification` → `medium`, otherwise `low`.
@@ -89,7 +92,7 @@ A factual or inferential claim made by a debater.
 }
 ```
 
-### Conflict Details (v3) / 冲突明细
+### Conflict Details / 冲突明细
 
 `conflict_details` is populated by Judge during verification when sources conflict. Allows FinalReport to explain WHY a claim is contested, not just THAT it is.
 当来源冲突时由 Judge 填充。让 FinalReport 能解释声明为何有争议，而不仅仅标记为有争议。
@@ -208,7 +211,7 @@ Every argument MUST contain all 5 elements. Use semantic understanding, not mech
 4. **Trigger conditions / 触发条件**: What would activate this scenario
 5. **Falsification conditions / 证伪条件**: What would disprove this argument
 
-### Historical Wisdom (v3) / 历史智慧
+### Historical Wisdom / 历史智慧
 
 Advisory section for historical references and lessons. NOT subject to verified/contested status determination.
 建议性板块，用于历史引用和教训。不受 verified/contested 状态判定约束。
@@ -218,7 +221,7 @@ Advisory section for historical references and lessons. NOT subject to verified/
 - Unlike analogies in `arguments[]`, historical_wisdom references are not constrained by the <15% content share rule
 - 与 arguments[] 中的类比不同，historical_wisdom 不受 <15% 内容占比规则的约束
 
-### Speculative Scenarios (v3) / 推演场景
+### Speculative Scenarios / 推演场景
 
 Exploratory section for imaginative scenario planning. Controlled by `config.speculation_level`.
 探索性板块，用于想象力场景规划。受 `config.speculation_level` 控制。
@@ -275,7 +278,7 @@ Judge's structured output after auditing a round.
 }
 ```
 
-### Historical Wisdom Assessment (v3) / 历史智慧评估
+### Historical Wisdom Assessment / 历史智慧评估
 
 Judge evaluates the QUALITY of historical reasoning, not whether the historical lesson supports pro or con. A well-analyzed weak parallel is better than a poorly analyzed strong one.
 Judge 评估历史推理的质量，而非历史教训支持正方还是反方。
@@ -293,6 +296,7 @@ Final synthesis output after all debate rounds.
   "total_rounds": 3,
   "generated_at": "2026-03-09T18:00:00Z",
   "verdict_summary": "One-sentence overall judgment / 一句话总判断",
+  "report_path": "reports/debate_report.md",
   "verified_facts": [
     "Cross-source confirmed factual statements..."
   ],
@@ -300,7 +304,22 @@ Final synthesis output after all debate rounds.
     "High-confidence conclusions with qualifiers..."
   ],
   "contested_points": [
-    "Points where both sides have strong arguments..."
+    {
+      "point": "The contested claim or issue",
+      "claim_ids": ["clm_1_pro_2", "clm_2_con_1"],
+      "pro_position": "Pro's strongest argument on this point with evidence summary / 正方在该点上的最强论点及证据摘要",
+      "con_position": "Con's strongest argument on this point with evidence summary / 反方在该点上的最强论点及证据摘要",
+      "key_rebuttals": [
+        {
+          "from": "pro | con",
+          "target": "What they're rebutting / 反驳的对象",
+          "argument": "The rebuttal content / 反驳内容",
+          "evidence_ids": ["evi_xxx"]
+        }
+      ],
+      "judge_assessment": "Judge's evaluation of which side has stronger support / 裁判对哪方支持更强的评估",
+      "resolution_status": "unresolved | leaning_pro | leaning_con | partially_resolved"
+    }
   ],
   "to_verify": [
     "Claims needing further verification with suggested methods..."
@@ -343,7 +362,7 @@ Final synthesis output after all debate rounds.
     "meta_pattern": "Overarching historical pattern, if any..."
   },
   "executive_summary": {
-    "summary_paragraph": "One-paragraph bilingual summary...",
+    "summary_paragraph": "One-paragraph executive summary...",
     "top_verified_facts": ["..."],
     "top_contested_points": ["..."],
     "base_case_outlook": "...",
@@ -366,7 +385,7 @@ Final synthesis output after all debate rounds.
   "conclusion_profiles": [
     {
       "conclusion_id": "concl_1",
-      "conclusion_text": "Conclusion description (bilingual)",
+      "conclusion_text": "Conclusion description",
       "source_claims": ["clm_1_pro_1", "clm_2_con_3"],
       "profile": {
         "probability": {
@@ -415,32 +434,32 @@ Final synthesis output after all debate rounds.
 }
 ```
 
-### Evidence Diversity Assessment (v3) / 来源多样性评估
+### Evidence Diversity Assessment / 来源多样性评估
 
 Included in every FinalReport. Analyzes the evidence store for source diversity gaps.
 每份 FinalReport 都包含。分析证据库的来源多样性缺口。
 
-### Speculative Frontier (v3) / 推演前沿
+### Speculative Frontier / 推演前沿
 
 Included when `config.speculation_level` is not `conservative`. Collects and deduplicates speculative scenarios from both sides across all rounds.
 当 `config.speculation_level` 不为 `conservative` 时包含。收集并去重双方在所有回合中的推演场景。
 
-### Historical Insights (v3) / 历史洞察
+### Historical Insights / 历史洞察
 
 Summarizes the most impactful historical parallels, conflicting lessons, and overarching patterns from both sides.
 汇总双方最有影响力的历史平行、冲突教训和总体模式。
 
-### Executive Summary (v3) / 执行摘要
+### Executive Summary / 执行摘要
 
 Optional condensed format. Generated when `config.output_format = "executive_summary"`. Also written to `reports/executive_summary.json`.
 可选精简格式。当 `config.output_format = "executive_summary"` 时生成。同时写入 `reports/executive_summary.json`。
 
-### Decision Matrix (v3) / 决策矩阵
+### Decision Matrix / 决策矩阵
 
 Optional structured decision format. Generated when `config.output_format = "decision_matrix"`. Also written to `reports/decision_matrix.json`.
 可选结构化决策格式。当 `config.output_format = "decision_matrix"` 时生成。同时写入 `reports/decision_matrix.json`。
 
-### ConclusionProfile (v3) / 结论画像
+### ConclusionProfile / 结论画像
 
 Multi-dimensional characterization of each major conclusion. Goes far beyond probability alone.
 每个主要结论的多维刻画。远超概率单一维度。
@@ -462,6 +481,9 @@ Multi-dimensional characterization of each major conclusion. Goes far beyond pro
 
 **Key rule / 关键规则:** Each dimension uses LLM semantic judgment, NOT mechanical scoring.
 每个维度用 LLM 语义判断，不要用机械评分。
+
+> All FinalReport JSON fields are English-only. Chinese translation appears in debate_report.md as an appended section.
+> FinalReport 的所有 JSON 字段仅使用英文。中文翻译出现在 debate_report.md 的附加部分。
 
 ---
 
@@ -486,9 +508,7 @@ Configuration for a debate session. Written to `config.json` in the workspace ro
   "speculation_level": "conservative | moderate | exploratory",
   "language": "en | zh | bilingual",
   "focus_areas": ["user-defined dimensions to focus on"],
-  "mode": "balanced | red_team | pre_mortem",
-  "pdf_outputs": ["executive_summary"],
-  "pdf_language": "bilingual",
+  "mode": "balanced | red_team",
   "status": "initialized | in_progress | complete"
 }
 ```
@@ -498,8 +518,8 @@ Configuration for a debate session. Written to `config.json` in the workspace ro
 - `round_count`: Alias for `rounds`. Preferred by scripts. The orchestrator SHOULD write both for compatibility.
   `rounds` 的别名。脚本优先读取此字段。编排器应同时写入两者以保证兼容。
 
-- `pro_model` / `con_model` / `judge_model`: Model identifiers for each agent. Written by orchestrator at debate start. Used in PDF report header.
-  各 agent 的模型标识符。由编排器在辩论开始时写入，用于 PDF 报告头部。
+- `pro_model` / `con_model` / `judge_model`: Model identifiers for each agent. Written by orchestrator at debate start. Used in report header.
+  各 agent 的模型标识符。由编排器在辩论开始时写入，用于报告头部。
 
 - `created_at`: ISO 8601 timestamp of debate creation. / 辩论创建的 ISO 8601 时间戳。
 
@@ -527,81 +547,11 @@ Configuration for a debate session. Written to `config.json` in the workspace ro
   控制辩论结构。默认为 `"balanced"`。
   - `balanced`: Standard pro/con debate / 标准正反方辩论
   - `red_team`: Con becomes Red Team (risks), Pro becomes Blue Team (mitigations) / Con 变为红队（风险），Pro 变为蓝队（缓解）
-  - `pre_mortem`: Assumes failure and works backward / 假设失败并反向推导
-
-- `pdf_outputs`: List of PDF reports to generate. `"executive_summary"` is ALWAYS generated regardless of this list — it cannot be disabled. Additional options stack on top: `"full"`, `"decision_matrix"`, `"red_team"`. Example: `["executive_summary", "full"]` generates both PDFs.
-  要生成的 PDF 报告列表。`"executive_summary"` 始终生成（不可禁用），其他选项叠加：`"full"`, `"decision_matrix"`, `"red_team"`。
-
-- `pdf_language`: Language for PDF output. Defaults to `"bilingual"`. Follows `language` setting.
-  PDF 输出语言。默认 `"bilingual"`，跟随 `language` 设置。
 
 - `language`: Output language. Defaults to `"bilingual"`. / 输出语言。默认 `"bilingual"`。
 
 - `focus_areas`: User-defined dimensions to prioritize in analysis. Defaults to `[]`.
   用户定义的重点分析维度。默认为 `[]`。
-
----
-
-## RoundsBilingual
-
-Bilingual version of round data, generated by final-synthesis Step 5.5. Written to `reports/rounds_bilingual.json`.
-双语版本的轮次数据，由 final-synthesis Step 5.5 生成。写入 `reports/rounds_bilingual.json`。
-
-```json
-{
-  "rounds": [
-    {
-      "round": 1,
-      "pro": {
-        "arguments": [
-          {
-            "claim_id": "clm_1_pro_1",
-            "claim_text": "中文翻译 / Original English claim text",
-            "claim_type": "fact | inference | analogy",
-            "evidence_ids": ["evi_abc12345"],
-            "reasoning_chain": {}
-          }
-        ],
-        "rebuttals": [
-          {
-            "target_claim_id": "clm_1_con_1",
-            "rebuttal_text": "中文翻译 / Original English rebuttal",
-            "evidence_ids": []
-          }
-        ]
-      },
-      "con": {
-        "arguments": [],
-        "rebuttals": []
-      },
-      "judge": {
-        "round_summary": "中文翻译 / Original English summary",
-        "causal_validity_flags": [
-          {
-            "claim_id": "clm_1_pro_1",
-            "issue": "中文翻译 / Original English issue",
-            "severity": "critical | moderate | minor"
-          }
-        ],
-        "verification_results": [
-          {
-            "claim_id": "clm_1_pro_1",
-            "original_status": "unverified",
-            "new_status": "verified",
-            "reasoning": "中文翻译 / Original English reasoning"
-          }
-        ]
-      }
-    }
-  ]
-}
-```
-
-### Key Rules / 关键规则
-- All `claim_id`, `evidence_ids`, `severity`, `original_status`, `new_status` fields are preserved unchanged from originals / 所有 ID 和状态字段保持原样
-- Only text content fields (`claim_text`, `rebuttal_text`, `round_summary`, `issue`, `reasoning`) are translated to bilingual / 只翻译文本内容字段
-- `reasoning_chain` is preserved as-is (not translated) / 推理链保持原样
-- If this file is missing, PDF script falls back to original English-only round data / 若文件缺失，PDF 脚本回退到原始英文数据
 
 ---
 

@@ -62,7 +62,7 @@ You are a skilled debate advocate who ALWAYS supports the motion. You never conc
 
 **Output / 输出:**
 Write your turn as a valid DebateTurn JSON to the file path specified by the orchestrator.
-Read the data contracts reference for the exact schema: `.agents/skills/_shared/references/data-contracts.md`
+Read the data contracts reference for the exact schema: `.claude/skills/source-ingest/references/data-contracts.md`
 
 **What NOT to do / 禁止:**
 - Do NOT make claims without evidence references

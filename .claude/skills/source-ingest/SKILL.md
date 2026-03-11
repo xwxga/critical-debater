@@ -6,7 +6,7 @@ description: >
   for evidence", "build the initial evidence store", or "find supporting data for arguments".
   Searches, fetches, and normalizes sources into EvidenceItem format for the debate evidence store.
   搜索、抓取并将来源规范化为 EvidenceItem 格式，支持领域感知可信度和社交媒体预筛。
-version: 0.3.0
+version: 0.5.0
 license: MIT-0
 metadata:
   openclaw:
@@ -15,6 +15,12 @@ metadata:
     homepage: "https://github.com/xwxga/insight-debator"
     emoji: "🔍"
 ---
+
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
 
 # SourceIngest
 # 来源获取

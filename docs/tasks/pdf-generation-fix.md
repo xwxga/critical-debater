@@ -418,7 +418,7 @@ git rm generate-pdf.js
 ## Modify 4: Update `final-synthesis` SKILL.md
 ## 修改 4：更新 `final-synthesis` SKILL.md
 
-**File:** `.agents/skills/final-synthesis/SKILL.md`
+**File:** `.claude/skills/final-synthesis/SKILL.md`
 
 Two changes:
 

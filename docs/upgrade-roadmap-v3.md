@@ -7,6 +7,7 @@
 |---|---|---|
 | 2026-03-10 15:45 | Claude | Phase 4 增加 Conclusion Profile 多维结论画像 / Added Conclusion Profile system |
 | 2026-03-10 15:15 | Claude | Phase 4 增加强制 PDF 输出（默认 executive summary PDF 5+页）/ Added mandatory PDF output |
+| 2026-03-11 | Claude | v0.2.0 升级备注：Phase 4 PDF 输出改为 Markdown 报告 / v0.2.0 note: Phase 4 PDF output replaced with Markdown report |
 | 2026-03-10 | Claude | 初始创建：4 Phase 升级路线图 / Initial creation: 4-phase upgrade roadmap |
 
 ---
@@ -85,7 +86,8 @@ FinalReport 新增 `speculative_frontier` section。
 
 `final-synthesis` 支持 `detail_level`：`one_liner`, `executive`, `full`
 
-**PDF 输出（必需）：** 每场辩论默认生成 executive summary PDF（5+ 页，表格式）。用户可通过 `--pdf full,decision_matrix` 增加额外 PDF。使用 `anthropic-skills:pdf` skill 生成。
+**报告输出：** ~~PDF 输出已在 v0.2.0 中移除~~。替代方案：每场辩论生成结构化 Markdown 报告 (`reports/debate_report.md`)，包含表格驱动的决策矩阵、已验证事实、争议点、场景展望和监控清单。
+**Report output:** ~~PDF output was removed in v0.2.0~~. Replacement: each debate generates a structured Markdown report (`reports/debate_report.md`) with table-driven decision matrix, verified facts, contested points, scenario outlook, and watchlist.
 
 **Conclusion Profile（结论画像）：** 每个主要结论提供 10 维度画像：概率、置信度、共识度、证据完整度、可逆性、时效窗口、影响幅度、因果清晰度、可操作性、可证伪性。远超单一概率判断。
 

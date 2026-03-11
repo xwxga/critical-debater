@@ -7,7 +7,7 @@ description: >
   "assess evidence credibility". Cross-source verification, credibility validation, and
   independent re-search.
   跨来源验证、可信度验证和独立重新搜索。
-version: 0.3.0
+version: 0.5.0
 license: MIT-0
 metadata:
   openclaw:
@@ -16,6 +16,12 @@ metadata:
     homepage: "https://github.com/xwxga/insight-debator"
     emoji: "✅"
 ---
+
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
 
 # EvidenceVerify
 # 证据验证

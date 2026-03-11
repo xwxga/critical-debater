@@ -5,13 +5,13 @@ description: >
   "synthesize all rounds into a conclusion", "create the final output with watchlist and
   scenario outlook", "produce the debate summary", or "compile verified facts, contested
   points, and recommendations". Generates the final debate report from all rounds' data.
-  从所有回合数据生成最终辩论报告，含结论画像和 PDF 输出。
-version: 0.3.0
+  从所有回合数据生成最终辩论报告，含结论画像和 Markdown 报告。
+version: 0.5.0
 license: MIT-0
 metadata:
   openclaw:
     requires:
-      bins: [bash, jq, python3]
+      bins: [bash, jq]
     homepage: "https://github.com/xwxga/insight-debator"
     emoji: "📊"
 ---
@@ -23,10 +23,7 @@ metadata:
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
-| 2026-03-11 | Claude | Step 5.5 移到 Red Team 前; "三轮" → "各轮" 动态轮次 / Moved Step 5.5 before Red Team; fixed hardcoded round count wording |
-| 2026-03-10 22:20 | Claude | Step 5 双语字段补全: 添加 to_verify/conclusion_profiles/historical_insights/speculative_frontier/evidence_diversity_assessment / Completed bilingual field list in Step 5 |
-| 2026-03-10 21:30 | Claude | Step 5 + 5.5: 添加双语内容要求，新增双语轮次数据生成步骤 / Added bilingual content requirement in Step 5, new Step 5.5 for bilingual round data generation |
-| 2026-03-10 19:40 | Claude | Step 6 PDF layout: 从页面式改为表格驱动布局 + 添加 Python fallback / Replaced page-by-page layout with table-driven layout + added Python fallback |
+| 2026-03-11 | Claude | Enrich contested points to per-point subsections; switch from inline bilingual to English JSON + two-part MD (EN first, then CN appendix) / 争议点从单行表格升级为逐点子章节；语言从行内双语改为英文 JSON + 双段 MD（英文在前，中文附后） |
 
 Generate the final debate report with verified facts, probable conclusions, contested points, scenario outlook, and 24h watchlist.
 生成包含已验证事实、可能结论、争议点、情景展望和 24h 监控清单的最终辩论报告。
@@ -48,11 +45,12 @@ Generate the final debate report with verified facts, probable conclusions, cont
 ## Output / 输出
 
 - `FinalReport` JSON written to `reports/final_report.json`
+- Markdown report written to `reports/debate_report.md`
 - Human-readable summary for the user (bilingual Chinese + English)
 
 ## Core Workflow / 核心工作流
 
-### Step 0: Read Output Format (v3) / 读取输出格式
+### Step 0: Read Output Format / 读取输出格式
 
 Read `config.json` for `output_format` field. This controls the report detail level.
 
@@ -80,16 +78,25 @@ From the final claim ledger, categorize:
 - Present with appropriate confidence qualifiers ("likely", "evidence suggests")
 
 **Contested Points / 争议点**:
-- Claims with `status = contested`
-- Include BOTH sides' strongest arguments on each contested point
-- Present the strongest version of each side's case
+- Claims with `status = contested` in the claim ledger
+- For EACH contested point, synthesize:
+  1. **The core issue / 核心问题**: What exactly is being disputed?
+  2. **Pro position / 正方立场**: Pro's strongest argument + key evidence (trace back to `rebuttals[]` and `arguments[]` across rounds)
+  3. **Con position / 反方立场**: Con's strongest argument + key evidence
+  4. **Key rebuttals / 关键反驳**: Extract the most impactful rebuttals from both sides' `rebuttals[]` arrays across all rounds. Include the rebuttal target, the counter-argument, and supporting `evidence_ids`
+  5. **Judge assessment / 裁判评估**: Summarize the Judge's `verification_results` and `causal_validity_flags` relevant to this point
+  6. **Resolution status / 解决状态**: Did the debate move toward resolution? (`unresolved` / `leaning_pro` / `leaning_con` / `partially_resolved`)
+- Use LLM semantic judgment to identify the strongest arguments — don't just dump all rebuttals
+  用 LLM 语义判断识别最强论点，不要简单堆砌所有反驳
+- Also check `conflict_details` in ClaimItem for source-level conflicts
+  同时检查 ClaimItem 中的 `conflict_details` 了解来源层面的冲突
 
 **Items Requiring Verification / 待验证项**:
 - Claims with `status = unverified`
 - Include suggested verification methods (what data would resolve this?)
 - Prioritize by importance to the overall debate conclusion
 
-### Step 2.5: Generate Conclusion Profiles (v3) / 生成结论画像
+### Step 2.5: Generate Conclusion Profiles / 生成结论画像
 
 For each major conclusion in `verified_facts` and `probable_conclusions`:
 
@@ -130,7 +137,7 @@ Based on verified facts and probable conclusions:
 - What would completely invalidate the base case?
 - These come from the strongest falsification conditions in the debate
 
-### Step 3.5: Speculative Frontier (v3) / 推演前沿
+### Step 3.5: Speculative Frontier / 推演前沿
 
 If `config.speculation_level` is not `conservative`:
 
@@ -158,7 +165,7 @@ Include in FinalReport:
 }
 ```
 
-### Step 3.6: Historical Wisdom Summary (v3) / 历史智慧汇总
+### Step 3.6: Historical Wisdom Summary / 历史智慧汇总
 
 Collect all `historical_wisdom` references from both sides:
 
@@ -191,7 +198,7 @@ Focus on:
 - Contested points where new evidence could tip the balance
 - Trigger conditions identified in the scenario outlook
 
-### Step 4.5: Source Diversity Assessment (v3) / 来源多样性评估
+### Step 4.5: Source Diversity Assessment / 来源多样性评估
 
 Analyze the complete evidence store to assess diversity:
 
@@ -224,21 +231,10 @@ Include in FinalReport:
 ### Step 5: Write Report / 写入报告
 
 1. Assemble into FinalReport JSON schema
-2. **Bilingual content requirement / 双语内容要求**:
-   ALL user-facing text fields MUST be bilingual: `中文内容 / English content`
-   所有面向用户的文本字段必须双语格式。辩论 agents 的原始数据可能是英文，你需要在综合时翻译为双语。
-   Affected fields / 涉及字段:
-   - `verified_facts[]` (each item)
-   - `probable_conclusions[]` (each item)
-   - `contested_points[]` (each item)
-   - `to_verify[]` (each item)
-   - `verdict_summary`
-   - `scenario_outlook.base_case`, `upside_triggers[]`, `downside_triggers[]`, `falsification_conditions[]`
-   - `watchlist_24h[].item`, `watchlist_24h[].reversal_trigger`
-   - `conclusion_profiles[].conclusion_text`, `conclusion_profiles[].profile.*.rationale`
-   - `historical_insights.key_parallels[]`, `historical_insights.conflicting_lessons[]`, `historical_insights.meta_pattern`
-   - `speculative_frontier[].premise`, `speculative_frontier[].chain_of_events`, `speculative_frontier[].impact`
-   - `evidence_diversity_assessment.geographic_diversity`, `evidence_diversity_assessment.perspective_balance`, `evidence_diversity_assessment.diversity_warning`
+2. **Language requirement / 语言要求**:
+   - All JSON fields (`final_report.json`) in **English only**
+   - Markdown report (`debate_report.md`): **English version first**, then `---` divider, then **complete Chinese translation** appended
+   - LLM translates the full report semantically, not field-by-field
 3. Write to `reports/final_report.json`
 4. Validate with `scripts/validate-json.sh <file> final_report`
 5. Log report generation via `scripts/append-audit.sh`
@@ -272,40 +268,7 @@ Generate a structured decision matrix:
 
 Write to `reports/decision_matrix.json` AND `reports/final_report.json`.
 
-### Step 5.5: Generate Bilingual Round Data / 生成双语轮次数据
-
-辩论 agents 的原始轮次数据（pro_turn.json, con_turn.json, judge_ruling.json）可能只有英文。
-此步骤生成双语版本供 PDF 使用。
-The original round data from debate agents may be English-only.
-This step generates bilingual versions for PDF rendering.
-
-1. Read each round's original JSONs: `rounds/round_N/pro_turn.json`, `con_turn.json`, `judge_ruling.json`
-2. Translate the following text fields to bilingual format `中文 / English`:
-   - `arguments[].claim_text`
-   - `rebuttals[].rebuttal_text`
-   - `round_summary`
-   - `causal_validity_flags[].issue`
-   - `verification_results[].reasoning`
-3. Preserve all other fields unchanged (claim_id, evidence_ids, severity, etc.)
-4. Write to `reports/rounds_bilingual.json`:
-
-```json
-{
-  "rounds": [
-    {
-      "round": 1,
-      "pro": { "arguments": [...], "rebuttals": [...] },
-      "con": { "arguments": [...], "rebuttals": [...] },
-      "judge": { "round_summary": "...", "causal_validity_flags": [...], "verification_results": [...] }
-    }
-  ]
-}
-```
-
-**Important / 重要**: Keep the same schema and claim_ids as the originals. Only replace text content with bilingual versions. The Python PDF fallback script reads this file to render bilingual content.
-保持与原始数据相同的 schema 和 claim_id。只将文本内容替换为双语版本。
-
-### Red Team Report Format (v3) / 红队报告格式
+### Red Team Report Format / 红队报告格式
 
 When `config.mode = "red_team"`, replace the standard FinalReport structure with:
 
@@ -332,59 +295,102 @@ When `config.mode = "red_team"`, replace the standard FinalReport structure with
 }
 ```
 
-### Step 6: Generate PDF Reports (v3 MANDATORY) / 生成 PDF 报告（v3 必需）
+### Step 6: Generate Markdown Report / 生成 Markdown 报告
 
-**This step is MANDATORY. Every debate MUST produce at least an executive summary PDF.**
-**此步骤为必需。每场辩论必须至少产出一份 executive summary PDF。**
+Generate a structured Markdown report for human consumption.
 
-Use the `pdf` skill (anthropic-skills:pdf) to generate formatted PDF reports.
+Output: `reports/debate_report.md` (inside workspace directory)
 
-#### Default: Executive Summary PDF (ALWAYS generated)
+Structure:
 
-Generate a table-driven, information-dense PDF with the following structure:
+```markdown
+# Debate Report: <topic>
+## Executive Summary
+<executive_summary from Step 4.5>
 
-**Part 1: Executive Summary (1-2 pages)**
-- 基本信息 table: 辩题, 轮次, 模型, 背景
-- 各轮辩论核心交锋 table: one row per round with 正方/反方核心论点 + 裁判裁定
-- 最终结论 table: 已验证事实/可能结论/争议要点 with counts and content
-- 24小时监控清单 table: 监控项 + 逆转触发条件
-- 总判断 highlighted box: base case assessment
+## Decision Matrix
+| Factor | Assessment | Confidence | Key Evidence |
+|---|---|---|---|
 
-**Part 2: Round Details (1 page per round)**
-- Legend: [R] 被对方反驳 [J] 被裁判质疑 [X] 被事实推翻
-- Per-round exchange table: 原始论点 | 谁的 | 被谁打 | 怎么打的 | 裁判怎么说
+## Verified Facts
+| # | Claim | Status | Sources | Track |
+|---|---|---|---|---|
 
-**Style: 表格优先、信息压缩、中文优先、无花哨封面**
+## Contested Points
 
-Write to: `reports/executive_summary.pdf`
+### CP-1: <point title>
+**Status**: <resolution_status>
 
-#### Fallback: Python PDF Script / 备用：Python PDF 脚本
+**Pro Position**: <pro's strongest argument + evidence refs>
 
-If the `pdf` skill is not available or fails:
-1. Run: `python3 scripts/generate_debate_pdf.py <workspace_path> executive_summary.pdf`
-2. Verify output exists in `<workspace>/reports/executive_summary.pdf`
-3. If Python script also fails, log error and continue — JSON reports are the primary output
+**Con Position**: <con's strongest argument + evidence refs>
 
-#### Optional: Additional PDF Outputs
+**Key Rebuttals**:
+- **[Pro → Con]** <target>: <argument> (Evidence: evi_xxx)
+- **[Con → Pro]** <target>: <argument> (Evidence: evi_yyy)
 
-If `config.pdf_outputs` includes additional formats:
+**Judge Assessment**: <evaluation>
 
-- `full`: Generate complete report as PDF (all sections, 10+ pages)
-  → Write to: `reports/full_report.pdf`
-- `decision_matrix`: Generate decision matrix as PDF (table-heavy format)
-  → Write to: `reports/decision_matrix.pdf`
-- `red_team`: Generate risk assessment as PDF (when mode=red_team)
-  → Write to: `reports/risk_assessment.pdf`
+---
 
-**PDF Content Principles / PDF 内容原则:**
-- 表格优先：所有结构化数据用表格呈现，不要用段落文字描述表格式内容
-  Tables first: Present all structured data as tables, not paragraph text
-- 信息密度：PDF 不是 JSON 的美化版，而是为人类阅读优化的报告
-  Information density: PDF is a human-optimized report, not a prettified JSON
-- 可追溯：关键结论标注来源 evidence_id，让读者可以回溯到原始证据
-  Traceable: Key conclusions reference evidence_ids for source tracing
-- 双语：所有标题和关键术语双语呈现（中文优先）
-  Bilingual: All headers and key terms in both languages (Chinese first)
+### CP-2: ...
+(repeat for each contested point, ~200-400 words each)
+
+## Key Arguments by Round
+### Round N
+| Side | Core Argument | Strength | Key Evidence |
+|---|---|---|---|
+
+## Scenario Outlook
+| Scenario | Probability | Trigger | Timeframe |
+|---|---|---|---|
+
+## Watchlist
+| # | Item | Why It Matters | Monitor How |
+|---|---|---|---|
+
+## Evidence Inventory
+| ID | Source | Type | Tier | Freshness | Track |
+|---|---|---|---|---|---|
+
+## Conclusion Profiles (if Red Team mode)
+| Dimension | Assessment | Confidence |
+|---|---|---|
+
+## Methodology
+- Rounds: N, Mode: balanced/red_team
+- Evidence items: X, Sources verified: Y
+- Generated: <timestamp>
+
+---
+
+# 辩论报告：<topic>
+## 执行摘要
+...
+## 争议点
+### 争点-1: <标题>
+**状态**: ...
+**正方立场**: ...
+**反方立场**: ...
+**关键反驳**: ...
+**裁判评估**: ...
+
+---
+
+### 争点-2: ...
+
+## 各轮关键论点
+...
+## 情景展望
+...
+## 监控清单
+...
+## 证据清单
+...
+## 方法论
+...
+(complete semantic Chinese translation of all English sections above)
+```
 
 ## Output Principles / 输出原则
 
@@ -393,4 +399,4 @@ If `config.pdf_outputs` includes additional formats:
 - **Balanced / 平衡**: Present contested points fairly with both sides represented
 - **Actionable / 可行动**: Watchlist items should be specific enough to actually monitor
 - **Honest about uncertainty / 诚实对待不确定性**: Clearly distinguish verified from probable from unverified
-- **Bilingual / 双语**: User-facing summary includes both Chinese and English
+- **Language / 语言**: JSON in English; Markdown report has English version followed by complete Chinese translation

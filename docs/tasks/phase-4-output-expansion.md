@@ -23,7 +23,7 @@ Depends on Phase 1 (`output_format`, `mode` config fields) and Phase 3 (`specula
 ## Task 1: Tiered Report Output in FinalSynthesis
 ## 任务 1：FinalSynthesis 分层报告输出
 
-**File:** `.agents/skills/final-synthesis/SKILL.md`
+**File:** `.claude/skills/final-synthesis/SKILL.md`
 
 **Action:** Add output format handling based on `config.output_format`:
 
@@ -91,9 +91,9 @@ Update the FinalReport schema in data-contracts.md to include optional `decision
 **Context:** 当前结论只有概率一个维度。需要为每个结论生成多维画像，让读者一眼理解"这个结论有多可靠、多稳定、多有用"。
 
 **Files:**
-- `.agents/skills/_shared/references/data-contracts.md` — FinalReport schema 增加 `conclusion_profiles[]`
-- `.agents/skills/final-synthesis/SKILL.md` — 增加 Conclusion Profile 生成步骤
-- `.agents/skills/judge-audit/SKILL.md` — Judge 为 claim 提供部分维度评估数据
+- `.claude/skills/source-ingest/references/data-contracts.md` — FinalReport schema 增加 `conclusion_profiles[]`
+- `.claude/skills/final-synthesis/SKILL.md` — 增加 Conclusion Profile 生成步骤
+- `.claude/skills/judge-audit/SKILL.md` — Judge 为 claim 提供部分维度评估数据
 
 ### 1.2.1 Data Contract: ConclusionProfile Schema
 
@@ -245,9 +245,9 @@ Executive Summary PDF 中增加 Conclusion Profile 展示：
 **Context:** 每场辩论默认必须输出一个 5 页以上的 executive summary PDF。用户可通过 `--pdf full` 或 `--pdf decision_matrix` 选择额外生成其他格式的 PDF。
 
 **Files:**
-- `.agents/skills/final-synthesis/SKILL.md` — 增加 PDF 生成步骤
-- `.agents/skills/_shared/references/data-contracts.md` — config schema 增加 `pdf_outputs` 字段
-- `.agents/skills/debate/SKILL.md` — 增加 `--pdf` 参数
+- `.claude/skills/final-synthesis/SKILL.md` — 增加 PDF 生成步骤
+- `.claude/skills/source-ingest/references/data-contracts.md` — config schema 增加 `pdf_outputs` 字段
+- `.claude/skills/debate/SKILL.md` — 增加 `--pdf` 参数
 
 ### 1.5.1 Config Schema Update
 
@@ -353,7 +353,7 @@ If `config.pdf_outputs` includes additional formats:
 ## Task 2: Red Team Mode
 ## 任务 2：红队模式
 
-**File:** `.agents/skills/debate/SKILL.md`
+**File:** `.claude/skills/debate/SKILL.md`
 
 **Action:** Add Red Team mode handling in the orchestrator launch prompt:
 
@@ -381,7 +381,7 @@ IMPORTANT MODE CHANGE:
 ```
 ```
 
-**File:** `.agents/skills/final-synthesis/SKILL.md`
+**File:** `.claude/skills/final-synthesis/SKILL.md`
 
 **Action:** Add Red Team output format:
 
@@ -485,7 +485,7 @@ When `config.mode = "red_team"`, replace the standard FinalReport structure with
 }
 ```
 
-**File:** `.agents/skills/debate/SKILL.md`
+**File:** `.claude/skills/debate/SKILL.md`
 
 **Action:** Add template support to argument parsing:
 

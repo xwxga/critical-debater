@@ -5,9 +5,8 @@
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
-| 2026-03-11 | Claude | 修正 skill 计数 8→9，列出全部 skill 名称 / Fixed skill count 8→9, listed all skill names |
-| 2026-03-10 18:57 | Claude | Skill 跨平台迁移：skills 从 .claude/skills/ 移至 .agents/skills/，symlink 回 .claude/skills/，升级 frontmatter v0.3.0，兼容 ClawHub/OpenClaw/skills.sh / Cross-platform skill migration: canonical location moved to .agents/skills/, symlinked back, frontmatter upgraded to v0.3.0 |
-| 2026-03-10 16:30 | Claude | 合并全局 CLAUDE.md 规则：语义优先、禁止硬编码、变更日志规则 / Merged global CLAUDE.md rules: semantic-first, no hardcoded examples, changelog rules |
+| 2026-03-11 | Claude | v0.5.0 升级：修复 6 个断开的 symlink，恢复 SKILL.md，全部 skill 统一版本号 / v0.5.0 upgrade: fix 6 broken symlinks, recover SKILL.md files, unify all skill versions |
+| 2026-03-11 | Claude | v0.2.0 升级：Skills 合并到 .claude/skills/，移除 PDF 和 pre_mortem，动态 workspace 路径 / v0.2.0 upgrade: consolidated skills to .claude/skills/, removed PDF and pre_mortem, dynamic workspace paths |
 | 2026-03-10 | Claude | 添加 v3 升级路线图引用 / Added v3 upgrade roadmap reference |
 | 2026-03-09 | Claude | 初始创建：项目指令、工作方式、证据规则、agent 隔离、脚本引用 / Initial creation |
 
@@ -15,68 +14,21 @@
 
 ## Project Overview / 项目概述
 
-Multi-agent debate system with 4 agents (Pro, Con, Judge, Orchestrator), 9 skills, and file-based state management.
-多 agent 辩论系统：4 个 agent、9 个 skill、基于文件的状态管理。
-Skills: source-ingest, evidence-verify, freshness-check, debate-turn, judge-audit, analogy-safeguard, claim-ledger-update, final-synthesis, debate
+Multi-agent debate system with 4 agents (Pro, Con, Judge, Orchestrator), 9 skills (v0.5.0), and file-based state management.
+多 agent 辩论系统：4 个 agent、9 个 skill（v0.5.0）、基于文件的状态管理。
+
+**Current version / 当前版本:** v0.5.0 — Fixed broken symlinks, recovered all SKILL.md files, unified skill versions. Skills in `.claude/skills/`, Markdown report output, dynamic workspace paths.
 
 Design spec: `docs/debate_system_v2.md`
 v3 upgrade roadmap: `docs/upgrade-roadmap-v3.md`
+v0.2.0 upgrade plan: `docs/upgrade-plan-v0.2.0.md`
 v3 task prompts: `docs/tasks/phase-{1,2,3,4}-*.md`
-
-### Skill Layout / Skill 目录结构
-- **Canonical location / 规范位置**: `.agents/skills/<name>/SKILL.md` (cross-platform, compatible with ClawHub/OpenClaw/skills.sh)
-- **Claude Code access / Claude Code 访问**: `.claude/skills/<name>` → symlink to `.agents/skills/<name>`
-- **Shared resources / 共享资源**: `.agents/skills/_shared/references/data-contracts.md`
-- **Setup script / 设置脚本**: `scripts/setup-skill-symlinks.sh` (creates .claude/skills/ symlinks, idempotent)
 
 ## Working Approach / 工作方式
 
 1. **LLM first / LLM 优先** — 阅读、判断、总结、分类、提取、论证构建、因果审计 → 全部用 LLM
 2. **Existing skill second / 现有 skill 其次** — 复用项目内 9 个 skill + Claude Code 内建工具（WebSearch, WebFetch, Agent tool）
 3. **Deterministic code last / 确定性代码最后** — 仅用于 `scripts/` 中的操作：workspace 初始化、JSON 验证、hash、审计日志追加
-
-Do NOT default to writing Python scripts for text tasks. Do NOT build static rule-based tools when LLM judgment is better.
-不要默认用脚本处理文本任务。不要在 LLM 判断更好时构建静态规则工具。
-
-## Semantic First, Never Mechanical / 语义优先，拒绝机械化
-
-When generating intermediate artifacts (subtitles, summaries, segments, etc.), ALWAYS use natural semantic understanding first — then apply constraints.
-生成中间产物（字幕、摘要、片段等）时，**永远先用自然语义理解，再施加约束**。
-
-- NEVER use mechanical numeric rules (e.g. "5-15 words per entry") to split, merge, or chunk text. These produce mid-phrase breaks and garbage output.
-  **绝不**用机械数字规则（如"每条5-15词"）来拆分、合并、分块文本。这会产生断在短语中间的垃圾输出。
-- ALWAYS let LLM understand the full meaning first, then break at natural boundaries (sentence ends, speaker turns, logical pauses).
-  **永远**让 LLM 先理解完整语义，再在自然边界处断开（句子结尾、说话人切换、逻辑停顿）。
-- Numeric limits (word count, duration) are soft guidelines for the LLM, not hard mechanical rules for code to enforce.
-  数字限制（词数、时长）是给 LLM 的软性参考，不是给代码强制执行的硬规则。
-
-## No Hardcoded Examples / 不要硬编码特例
-
-Never put session-specific or project-specific values into prompts or code as hardcoded examples. Write generic instructions that let LLM use context to figure it out. Hardcoded examples make code non-reusable and break on different inputs.
-不要把当前会话或项目特有的值硬编码到 prompt 或代码中作为示例。写通用指令，让 LLM 根据上下文自行判断。硬编码的特例让代码无法复用，换个输入就会失效。
-
-## Document Changelog Rule / 文档变更日志规则
-
-Every time you update a document file (`.md`, design docs, architecture docs, project masters, etc.), you MUST add a changelog entry at the **top of the file** (right after the title).
-每次更新文档类文件时，**必须**在文件顶部（标题之后）添加变更日志条目。
-
-Format / 格式:
-```
-## Changelog / 变更日志
-
-| 时间 / Time | 作者 / Author | 变更 / Change |
-|---|---|---|
-| newest first... |
-```
-
-Timestamp rules / 时间戳规则:
-- Same-day updates: precision to **minute** (e.g. `2026-03-06 03:19`)
-  日内更新：精确到**分钟**
-- Cross-day updates: precision to **day** (e.g. `2026-03-06`)
-  跨日更新：精确到**日**
-
-New entries go at the top of the table (newest first). Never remove old entries.
-新条目放表格最上方（最新优先）。不要删除旧条目。
 
 ## Evidence Rules / 证据规则
 
@@ -119,12 +71,10 @@ Observed facts → Mechanism → Scenario implication → Trigger conditions →
 | `scripts/validate-json.sh <file> <schema_type>` | 验证 JSON 必需字段 |
 | `scripts/hash-snippet.sh <text>` | SHA-256 hash |
 | `scripts/append-audit.sh <audit_file> <json_line>` | 原子追加 JSONL |
-| `scripts/setup-skill-symlinks.sh` | 创建 .claude/skills/ → .agents/skills/ 的 symlink |
 
 ## Data Contracts / 数据契约
 
-See `.agents/skills/_shared/references/data-contracts.md` for all JSON schemas.
-(Also accessible via symlink: `.claude/skills/source-ingest/references/data-contracts.md`)
+See `skills/source-ingest/references/data-contracts.md` for all JSON schemas.
 
 ## Bilingual / 双语
 
