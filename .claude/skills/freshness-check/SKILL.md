@@ -12,7 +12,7 @@ metadata:
   openclaw:
     requires:
       bins: []
-    homepage: "https://github.com/xwxga/insight-debator"
+    homepage: "https://github.com/xwxga/critical-debater"
     emoji: "⏰"
 ---
 

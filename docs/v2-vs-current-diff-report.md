@@ -12,9 +12,9 @@
 
 ## 1. Overview / 概述
 
-The Insight Debator system evolved from v2 design spec (`docs/debate_system_v2.md`) through a v3 upgrade roadmap (`docs/upgrade-roadmap-v3.md`). After the v0.2.0 upgrade, all skills reside in a single location:
+The Critical Debater system evolved from v2 design spec (`docs/debate_system_v2.md`) through a v3 upgrade roadmap (`docs/upgrade-roadmap-v3.md`). After the v0.2.0 upgrade, all skills reside in a single location:
 
-Insight Debator 系统从 v2 设计文档经过 v3 升级路线图演进至当前状态。v0.2.0 升级后，所有 skill 统一存放在一个位置：
+Critical Debater 系统从 v2 设计文档经过 v3 升级路线图演进至当前状态。v0.2.0 升级后，所有 skill 统一存放在一个位置：
 
 - **`.claude/skills/`** — v0.2.0 skills (consolidated from v3 features, PDF removed, pre_mortem removed)
 - **`.claude/agents/`** — Agent definitions with dynamic workspace paths

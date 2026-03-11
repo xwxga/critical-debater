@@ -1,5 +1,5 @@
-# Insight Debator v3 — Upgrade Roadmap
-# Insight Debator v3 — 升级路线图
+# Critical Debater v3 — Upgrade Roadmap
+# Critical Debater v3 — 升级路线图
 
 ## Changelog / 变更日志
 

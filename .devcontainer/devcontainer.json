@@ -1,5 +1,5 @@
 {
-  "name": "Insight Debator Sandbox",
+  "name": "Critical Debater Sandbox",
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
