@@ -1,5 +1,11 @@
 # Data Contracts / 数据契约
 
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| 2026-03-10 22:15 | Claude | FinalReport 添加 verdict_summary 字段; DebateConfig 添加 round_count/pro_model/con_model/judge_model/created_at / Added verdict_summary to FinalReport; added round_count/pro_model/con_model/judge_model/created_at to DebateConfig |
+
 All agents and skills reference these JSON schemas as the single source of truth.
 所有 agent 和 skill 引用这些 JSON schema 作为唯一真相来源。
 
@@ -285,6 +291,7 @@ Final synthesis output after all debate rounds.
   "topic": "The debate topic",
   "total_rounds": 3,
   "generated_at": "2026-03-09T18:00:00Z",
+  "verdict_summary": "One-sentence overall judgment / 一句话总判断",
   "verified_facts": [
     "Cross-source confirmed factual statements..."
   ],
@@ -466,6 +473,11 @@ Configuration for a debate session. Written to `config.json` in the workspace ro
 {
   "topic": "The debate topic",
   "rounds": 3,
+  "round_count": 3,
+  "pro_model": "Model identifier for pro debater",
+  "con_model": "Model identifier for con debater",
+  "judge_model": "Model identifier for judge",
+  "created_at": "2026-03-09T12:00:00Z",
   "domain": "geopolitics | tech | health | finance | philosophy | culture | general",
   "depth": "quick | standard | deep",
   "evidence_scope": "web_only | academic_included | user_provided | mixed",
@@ -481,6 +493,14 @@ Configuration for a debate session. Written to `config.json` in the workspace ro
 ```
 
 ### Field Documentation / 字段说明
+
+- `round_count`: Alias for `rounds`. Preferred by scripts. The orchestrator SHOULD write both for compatibility.
+  `rounds` 的别名。脚本优先读取此字段。编排器应同时写入两者以保证兼容。
+
+- `pro_model` / `con_model` / `judge_model`: Model identifiers for each agent. Written by orchestrator at debate start. Used in PDF report header.
+  各 agent 的模型标识符。由编排器在辩论开始时写入，用于 PDF 报告头部。
+
+- `created_at`: ISO 8601 timestamp of debate creation. / 辩论创建的 ISO 8601 时间戳。
 
 - `domain`: The subject domain of the debate. Defaults to `"general"` if not provided. When `"general"`, LLM infers the most appropriate domain from the topic text.
   辩论的主题领域。未提供时默认为 `"general"`。为 `"general"` 时，LLM 从话题文本推断最合适的领域。

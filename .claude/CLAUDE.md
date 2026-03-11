@@ -5,6 +5,7 @@
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | 修正 skill 计数 8→9，列出全部 skill 名称 / Fixed skill count 8→9, listed all skill names |
 | 2026-03-10 18:57 | Claude | Skill 跨平台迁移：skills 从 .claude/skills/ 移至 .agents/skills/，symlink 回 .claude/skills/，升级 frontmatter v0.3.0，兼容 ClawHub/OpenClaw/skills.sh / Cross-platform skill migration: canonical location moved to .agents/skills/, symlinked back, frontmatter upgraded to v0.3.0 |
 | 2026-03-10 16:30 | Claude | 合并全局 CLAUDE.md 规则：语义优先、禁止硬编码、变更日志规则 / Merged global CLAUDE.md rules: semantic-first, no hardcoded examples, changelog rules |
 | 2026-03-10 | Claude | 添加 v3 升级路线图引用 / Added v3 upgrade roadmap reference |
@@ -16,6 +17,7 @@
 
 Multi-agent debate system with 4 agents (Pro, Con, Judge, Orchestrator), 9 skills, and file-based state management.
 多 agent 辩论系统：4 个 agent、9 个 skill、基于文件的状态管理。
+Skills: source-ingest, evidence-verify, freshness-check, debate-turn, judge-audit, analogy-safeguard, claim-ledger-update, final-synthesis, debate
 
 Design spec: `docs/debate_system_v2.md`
 v3 upgrade roadmap: `docs/upgrade-roadmap-v3.md`
@@ -30,7 +32,7 @@ v3 task prompts: `docs/tasks/phase-{1,2,3,4}-*.md`
 ## Working Approach / 工作方式
 
 1. **LLM first / LLM 优先** — 阅读、判断、总结、分类、提取、论证构建、因果审计 → 全部用 LLM
-2. **Existing skill second / 现有 skill 其次** — 复用项目内 8 个 skill + Claude Code 内建工具（WebSearch, WebFetch, Agent tool）
+2. **Existing skill second / 现有 skill 其次** — 复用项目内 9 个 skill + Claude Code 内建工具（WebSearch, WebFetch, Agent tool）
 3. **Deterministic code last / 确定性代码最后** — 仅用于 `scripts/` 中的操作：workspace 初始化、JSON 验证、hash、审计日志追加
 
 Do NOT default to writing Python scripts for text tasks. Do NOT build static rule-based tools when LLM judgment is better.

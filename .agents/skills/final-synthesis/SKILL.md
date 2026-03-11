@@ -23,6 +23,7 @@ metadata:
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-10 22:20 | Claude | Step 5 双语字段补全: 添加 to_verify/conclusion_profiles/historical_insights/speculative_frontier/evidence_diversity_assessment / Completed bilingual field list in Step 5 |
 | 2026-03-10 21:30 | Claude | Step 5 + 5.5: 添加双语内容要求，新增双语轮次数据生成步骤 / Added bilingual content requirement in Step 5, new Step 5.5 for bilingual round data generation |
 | 2026-03-10 19:40 | Claude | Step 6 PDF layout: 从页面式改为表格驱动布局 + 添加 Python fallback / Replaced page-by-page layout with table-driven layout + added Python fallback |
 
@@ -229,9 +230,14 @@ Include in FinalReport:
    - `verified_facts[]` (each item)
    - `probable_conclusions[]` (each item)
    - `contested_points[]` (each item)
+   - `to_verify[]` (each item)
    - `verdict_summary`
    - `scenario_outlook.base_case`, `upside_triggers[]`, `downside_triggers[]`, `falsification_conditions[]`
    - `watchlist_24h[].item`, `watchlist_24h[].reversal_trigger`
+   - `conclusion_profiles[].conclusion_text`, `conclusion_profiles[].profile.*.rationale`
+   - `historical_insights.key_parallels[]`, `historical_insights.conflicting_lessons[]`, `historical_insights.meta_pattern`
+   - `speculative_frontier[].premise`, `speculative_frontier[].chain_of_events`, `speculative_frontier[].impact`
+   - `evidence_diversity_assessment.geographic_diversity`, `evidence_diversity_assessment.perspective_balance`, `evidence_diversity_assessment.diversity_warning`
 3. Write to `reports/final_report.json`
 4. Validate with `scripts/validate-json.sh <file> final_report`
 5. Log report generation via `scripts/append-audit.sh`

@@ -15,12 +15,12 @@ import urllib.request
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
-from reportlab.lib.colors import HexColor, white, black
+from reportlab.lib.colors import HexColor, white
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.enums import TA_LEFT
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, PageBreak,
-    Table, TableStyle, HRFlowable,
+    Table, TableStyle,
 )
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -41,7 +41,12 @@ C_HIGHLIGHT_BG = HexColor("#F5F5F5")
 
 # ── Constants ──
 CIRCLED_NUMS = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"]
-CN_NUMS = {1: "一", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六"}
+CN_NUMS = {1: "一", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六", 7: "七", 8: "八", 9: "九", 10: "十"}
+
+def circled_num(i):
+    """Get circled number symbol, fallback to (N) for overflow."""
+    return CIRCLED_NUMS[i] if i < len(CIRCLED_NUMS) else f"({i + 1})"
+
 
 FONT_NAME = "CJKFont"
 FONT_NAME_BOLD = "CJKFontBold"
@@ -312,14 +317,12 @@ def build_round_overview_table(story, rounds_data):
         cn = CN_NUMS.get(r, str(r))
 
         pro_claims = "<br/>".join(
-            f"{CIRCLED_NUMS[i]} {esc(safe_str(a.get('claim_text', '')))}"
+            f"{circled_num(i)} {esc(safe_str(a.get('claim_text', '')))}"
             for i, a in enumerate(pro.get("arguments", []))
-            if i < len(CIRCLED_NUMS)
         )
         con_claims = "<br/>".join(
-            f"{CIRCLED_NUMS[i]} {esc(safe_str(a.get('claim_text', '')))}"
+            f"{circled_num(i)} {esc(safe_str(a.get('claim_text', '')))}"
             for i, a in enumerate(con.get("arguments", []))
-            if i < len(CIRCLED_NUMS)
         )
         judge_summary = esc(safe_str(judge.get("round_summary", "")))
 
@@ -350,7 +353,14 @@ def build_conclusions_table(story, final_report):
     cp = final_report.get("contested_points", [])
 
     def summarize_list(items, max_items=3):
-        parts = [esc(safe_str(item)) for item in items[:max_items]]
+        parts = []
+        for item in items[:max_items]:
+            if isinstance(item, dict):
+                text = (item.get("fact") or item.get("conclusion")
+                        or item.get("point") or item.get("text") or str(item))
+            else:
+                text = str(item)
+            parts.append(esc(safe_str(text)))
         if len(items) > max_items:
             parts.append(f"... ({len(items)} total)")
         return "<br/>".join(parts)
@@ -535,7 +545,7 @@ def _claim_matches(target_id, side, arg, pro, con):
 
     source = pro if side.startswith("正方") else con
     args = source.get("arguments", [])
-    return 0 <= target_idx < len(args) and args[target_idx] is arg
+    return 0 <= target_idx < len(args) and args[target_idx] == arg
 
 
 # ═════════════════════════════════════════════════════════════
@@ -567,6 +577,7 @@ def main():
 
     workspace = os.path.abspath(sys.argv[1])
     output_name = sys.argv[2] if len(sys.argv) > 2 else "executive_summary.pdf"
+    output_name = os.path.basename(output_name)  # Sanitize: prevent path traversal
 
     if not os.path.isdir(workspace):
         print(f"Error: workspace not found: {workspace}")
@@ -636,7 +647,11 @@ def main():
     for r, (pro, con, judge) in enumerate(rounds_data, 1):
         build_round_detail(story, r, pro, con, judge, is_first=(r == 1))
 
-    doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
+    try:
+        doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
+    except Exception as e:
+        print(f"Error: PDF build failed: {e}")
+        sys.exit(1)
     print(f"PDF generated: {output_path}")
 
 
