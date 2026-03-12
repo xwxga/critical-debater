@@ -9,7 +9,7 @@
       "ZSH_IN_DOCKER_VERSION": "1.2.0"
     }
   },
-  "runArgs": ["--env-file", ".env"],
+  "runArgs": [],
   "customizations": {
     "vscode": {
       "extensions": [
@@ -46,5 +46,5 @@
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
-  "postStartCommand": "bash scripts/setup-skill-symlinks.sh && echo 'Container ready!'"
+  "postStartCommand": "echo 'Container ready!'"
 }
