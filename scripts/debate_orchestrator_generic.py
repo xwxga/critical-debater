@@ -459,6 +459,7 @@ class DebateOrchestrator:
               last_verified_at, judge_note, mandatory_response, conflict_details.
             - Use status from judge verification where available, else keep "unverified".
             - Keep file as JSON array and preserve older round claims.
+            - {self._strict_line()}
 
             Write output to: {self.claim_ledger_file}
             Return one line at end: DONE:ledger-round-{round_idx}
@@ -516,6 +517,10 @@ class DebateOrchestrator:
         ).strip()
         self.codex_exec("final-synthesis", prompt)
         self.validate_json(self.final_report_file, "final_report")
+        if not self.debate_report_file.exists():
+            raise RuntimeError(f"missing required markdown report: {self.debate_report_file}")
+        if self.debate_report_file.stat().st_size == 0:
+            raise RuntimeError(f"markdown report is empty: {self.debate_report_file}")
         self.write_config(status="complete", current_round=self.opts.rounds)
         self.append_audit(
             "report_generated",

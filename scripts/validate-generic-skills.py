@@ -87,7 +87,33 @@ def validate_skill_file(path: Path, expected_name: str) -> list[str]:
     return errors
 
 
-def validate_claude_unchanged(repo_root: Path) -> list[str]:
+def validate_claude_unchanged(repo_root: Path, base_ref: str | None = None) -> list[str]:
+    if base_ref:
+        verify = subprocess.run(
+            ["git", "rev-parse", "--verify", base_ref],
+            cwd=repo_root,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if verify.returncode != 0:
+            return [f"invalid --claude-diff-base ref '{base_ref}': {verify.stderr.strip()}"]
+
+        proc = subprocess.run(
+            ["git", "diff", "--name-only", f"{base_ref}...HEAD", "--", ".claude"],
+            cwd=repo_root,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            return [f"git diff command failed: {proc.stderr.strip()}"]
+
+        changed = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+        if changed:
+            return [f".claude tree changed vs base '{base_ref}':"] + [f"  - {item}" for item in changed]
+        return []
+
     proc = subprocess.run(
         ["git", "diff", "--name-only", "--", ".claude"],
         cwd=repo_root,
@@ -100,7 +126,7 @@ def validate_claude_unchanged(repo_root: Path) -> list[str]:
 
     changed = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
     if changed:
-        return [".claude tree changed unexpectedly:"] + [f"  - {item}" for item in changed]
+        return [".claude tree changed unexpectedly (working tree diff mode):"] + [f"  - {item}" for item in changed]
     return []
 
 
@@ -114,7 +140,12 @@ def main() -> int:
     parser.add_argument(
         "--check-claude-unchanged",
         action="store_true",
-        help="Fail if .claude has uncommitted changes",
+        help="Fail if .claude changed (default: working tree diff; use --claude-diff-base for PR-style diff)",
+    )
+    parser.add_argument(
+        "--claude-diff-base",
+        default=None,
+        help="Optional git base ref for .claude diff check (example: origin/main). Uses <base>...HEAD.",
     )
     args = parser.parse_args()
 
@@ -157,7 +188,7 @@ def main() -> int:
             errors.append(f"Missing shared file: {path}")
 
     if args.check_claude_unchanged:
-        errors.extend(validate_claude_unchanged(repo_root))
+        errors.extend(validate_claude_unchanged(repo_root, args.claude_diff_base))
 
     if errors:
         print("FAILED generic skills validation:", file=sys.stderr)
@@ -170,7 +201,10 @@ def main() -> int:
     print("- frontmatter keys: name + description only")
     print("- shared adapter docs: present")
     if args.check_claude_unchanged:
-        print("- .claude tree: unchanged")
+        if args.claude_diff_base:
+            print(f"- .claude tree: unchanged vs {args.claude_diff_base}")
+        else:
+            print("- .claude tree: unchanged (working tree diff mode)")
     return 0
 
 
