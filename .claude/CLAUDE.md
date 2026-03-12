@@ -5,6 +5,7 @@
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-12 | Claude | 新增系统架构文档 docs/system-architecture.md，包含流程图、信息流向、Agent 对比 / Added system architecture doc with flow diagrams, data flow, agent comparison |
 | 2026-03-11 | Claude | 项目更名 Insight Debator → Critical Debater / Renamed project |
 | 2026-03-11 | Claude | v0.5.0 升级：修复 6 个断开的 symlink，恢复 SKILL.md，全部 skill 统一版本号 / v0.5.0 upgrade: fix 6 broken symlinks, recover SKILL.md files, unify all skill versions |
 | 2026-03-11 | Claude | v0.2.0 升级：Skills 合并到 .claude/skills/，移除 PDF 和 pre_mortem，动态 workspace 路径 / v0.2.0 upgrade: consolidated skills to .claude/skills/, removed PDF and pre_mortem, dynamic workspace paths |
@@ -21,8 +22,10 @@ Multi-agent debate system with 4 agents (Pro, Con, Judge, Orchestrator), 9 skill
 **Current version / 当前版本:** v0.5.0 — Fixed broken symlinks, recovered all SKILL.md files, unified skill versions. Skills in `.claude/skills/`, Markdown report output, dynamic workspace paths.
 
 Design spec: `docs/debate_system_v2.md`
+**System architecture: `docs/system-architecture.md`** — 完整流程图、信息流向、读写权限、Skill 分布、状态机（每次重大更新需同步更新）
 v3 upgrade roadmap: `docs/upgrade-roadmap-v3.md`
 v0.2.0 upgrade plan: `docs/upgrade-plan-v0.2.0.md`
+v0.6.0 upgrade plan: `docs/upgrade-plan-v0.6.0.md`
 v3 task prompts: `docs/tasks/phase-{1,2,3,4}-*.md`
 
 ## Working Approach / 工作方式
