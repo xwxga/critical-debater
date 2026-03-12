@@ -1,24 +1,28 @@
 ---
 name: debate
 description: >
-  Start a multi-agent debate on any topic. Use this skill when the user says
-  "debate", "start a debate", "run a debate on", "argue about", or provides
-  a topic they want analyzed from multiple perspectives with evidence verification.
-  启动多agent辩论系统，支持证据验证、因果链分析和结构化裁定。
-version: 0.5.0
+  Launches a multi-agent debate on any topic with real-time evidence verification
+  and causal reasoning chains. Use this skill when the user says "debate", "start
+  a debate", "run a debate on", "argue about", "red team this", "analyze from
+  multiple perspectives", or provides a topic for critical examination. Supports
+  balanced and red-team modes, configurable depth and rounds, domain-aware evidence
+  gathering, and generates structured Markdown reports with conclusion profiles
+  and 24h watchlists.
 license: MIT-0
+compatibility: Requires bash, jq, python3, and shasum. Internet access for WebSearch.
 metadata:
-  openclaw:
-    requires:
-      bins: [bash, jq, python3, shasum]
-    homepage: "https://github.com/xwxga/critical-debater"
-    emoji: "🏛️"
+  version: "0.6.0"
+  author: xwxga
+  homepage: "https://github.com/xwxga/critical-debater"
+  tags: debate, multi-agent, evidence-verification, reasoning
+  emoji: "🏛️"
 ---
 
 ## Changelog / 变更日志
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.6.0: Agent Skills open standard compliance — frontmatter restructured, English-only description, progressive disclosure, evals added / Agent Skills 开放标准兼容 — 前置元数据重构、纯英文描述、渐进式披露、添加评测 |
 | 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
 
 # /debate — Multi-Agent Debate System

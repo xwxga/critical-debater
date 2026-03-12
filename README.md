@@ -230,7 +230,7 @@ debates/bitcoin-vs-gold-20260311/
 - **Agents**: Claude Sonnet (debaters) + Claude Opus (judge)
 - **State**: File-based JSON — no database needed
 - **Scripts**: Bash (workspace init, JSON validation, audit logging)
-- **Skills**: 9 composable `.claude/skills/` with OpenClaw-compatible frontmatter
+- **Skills**: 9 composable `.claude/skills/`, [Agent Skills](https://agentskills.io) open standard compliant, [skills.sh](https://skills.sh) compatible
 
 ---
 

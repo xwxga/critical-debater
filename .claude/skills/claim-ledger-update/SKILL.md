@@ -1,25 +1,26 @@
 ---
 name: claim-ledger-update
 description: >
-  This skill should be used when the orchestrator needs to "update the claim ledger",
-  "record new claims from a debate turn", "change claim status based on judge ruling",
-  "track claim state transitions", or "manage the claim state machine".
-  Manages claim state machine transitions and persists to claim_ledger.json.
-  管理声明状态机转换并持久化到 claim_ledger.json。
-version: 0.5.0
+  Manages the claim state machine for a multi-agent debate system. Use this skill when
+  the orchestrator needs to update the claim ledger, record new claims from a debate turn,
+  change claim status based on judge ruling, track claim state transitions, extract claims
+  from arguments, perform batch updates from judge rulings, or manage the claim lifecycle
+  with audit trail persistence.
 license: MIT-0
+compatibility: Requires bash and jq for JSON validation and audit trail.
 metadata:
-  openclaw:
-    requires:
-      bins: [bash, jq]
-    homepage: "https://github.com/xwxga/critical-debater"
-    emoji: "📋"
+  version: "0.6.0"
+  author: xwxga
+  homepage: "https://github.com/xwxga/critical-debater"
+  tags: debate, claims, state-machine, audit-trail
+  emoji: "📋"
 ---
 
 ## Changelog / 变更日志
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.6.0: Agent Skills open standard compliance — frontmatter restructured, English-only description, progressive disclosure, evals added / Agent Skills 开放标准兼容 — 前置元数据重构、纯英文描述、渐进式披露、添加评测 |
 | 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
 
 # ClaimLedgerUpdate

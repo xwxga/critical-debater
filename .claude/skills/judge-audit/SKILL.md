@@ -1,26 +1,27 @@
 ---
 name: judge-audit
 description: >
-  This skill should be used when the judge agent needs to "audit a debate round",
-  "verify claims independently", "check causal validity of arguments", "produce a
-  structured ruling", "identify mandatory response points for next round", "perform
-  independent second-pass verification", or "evaluate reasoning quality from both sides".
-  Independent verification, causal chain audit, and structured ruling generation.
-  独立验证、因果链审计和结构化裁定生成。
-version: 0.5.0
+  Performs independent verification, causal chain audit, analogy validation, and
+  generates structured rulings for debate rounds. Use this skill when the judge agent
+  needs to audit a debate round, verify claims independently, check causal validity
+  of arguments, produce a structured ruling, identify mandatory response points for
+  next round, perform independent second-pass verification, evaluate reasoning quality,
+  assess historical wisdom references, or review speculative scenarios.
 license: MIT-0
+compatibility: Requires bash and jq. Internet access for independent verification.
 metadata:
-  openclaw:
-    requires:
-      bins: [bash, jq]
-    homepage: "https://github.com/xwxga/critical-debater"
-    emoji: "⚖️"
+  version: "0.6.0"
+  author: xwxga
+  homepage: "https://github.com/xwxga/critical-debater"
+  tags: debate, judge, causal-audit, verification
+  emoji: "⚖️"
 ---
 
 ## Changelog / 变更日志
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.6.0: Agent Skills open standard compliance — frontmatter restructured, English-only description, progressive disclosure, evals added / Agent Skills 开放标准兼容 — 前置元数据重构、纯英文描述、渐进式披露、添加评测 |
 | 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
 
 # JudgeAudit

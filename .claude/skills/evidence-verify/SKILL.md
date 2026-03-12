@@ -1,26 +1,26 @@
 ---
 name: evidence-verify
 description: >
-  This skill should be used when the judge needs to "verify evidence independently",
-  "cross-check sources", "validate a claim's supporting evidence", "check if Twitter-only
-  claims have independent sources", "perform independent source verification", or
-  "assess evidence credibility". Cross-source verification, credibility validation, and
-  independent re-search.
-  跨来源验证、可信度验证和独立重新搜索。
-version: 0.5.0
+  Performs cross-source verification, credibility validation, and independent re-search
+  for debate evidence. Use this skill when the judge needs to verify evidence
+  independently, cross-check sources, validate a claim's supporting evidence, check
+  if Twitter-only claims have independent corroboration, perform independent source
+  verification, assess evidence credibility, or determine claim verification status.
 license: MIT-0
+compatibility: Internet access needed for independent source verification.
 metadata:
-  openclaw:
-    requires:
-      bins: []
-    homepage: "https://github.com/xwxga/critical-debater"
-    emoji: "✅"
+  version: "0.6.0"
+  author: xwxga
+  homepage: "https://github.com/xwxga/critical-debater"
+  tags: debate, evidence, verification, cross-source
+  emoji: "✅"
 ---
 
 ## Changelog / 变更日志
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.6.0: Agent Skills open standard compliance — frontmatter restructured, English-only description, progressive disclosure, evals added / Agent Skills 开放标准兼容 — 前置元数据重构、纯英文描述、渐进式披露、添加评测 |
 | 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
 
 # EvidenceVerify

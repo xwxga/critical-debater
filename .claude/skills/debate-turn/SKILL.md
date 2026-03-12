@@ -1,26 +1,27 @@
 ---
 name: debate-turn
 description: >
-  This skill should be used when a debater agent needs to "construct an argument",
-  "build a debate turn", "generate rebuttals against opponent", "respond to judge's
-  mandatory points", "create a structured argument with evidence and reasoning chain",
-  or "produce a debate round output". Constructs debate arguments with reasoning chains,
-  rebuttals, and evidence references.
-  构建包含推理链、反驳和证据引用的辩论论点。
-version: 0.5.0
+  Constructs a complete structured debate turn with 5-element reasoning chains,
+  rebuttals, and evidence references. Use this skill when a debater agent needs to
+  construct an argument, build a debate turn, generate rebuttals against opponent,
+  respond to mandatory judge response points, create a structured argument with
+  evidence and causal reasoning chain, or produce a debate round output with
+  historical wisdom and speculative scenarios.
 license: MIT-0
+compatibility: Requires bash and shasum. Internet access for evidence search.
 metadata:
-  openclaw:
-    requires:
-      bins: [bash, shasum]
-    homepage: "https://github.com/xwxga/critical-debater"
-    emoji: "🎤"
+  version: "0.6.0"
+  author: xwxga
+  homepage: "https://github.com/xwxga/critical-debater"
+  tags: debate, argument, reasoning-chain, rebuttal
+  emoji: "🎤"
 ---
 
 ## Changelog / 变更日志
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.6.0: Agent Skills open standard compliance — frontmatter restructured, English-only description, progressive disclosure, evals added / Agent Skills 开放标准兼容 — 前置元数据重构、纯英文描述、渐进式披露、添加评测 |
 | 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
 
 # DebateTurn

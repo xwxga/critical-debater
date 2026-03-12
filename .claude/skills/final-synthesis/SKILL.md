@@ -1,19 +1,20 @@
 ---
 name: final-synthesis
 description: >
-  This skill should be used when the orchestrator needs to "generate the final debate report",
-  "synthesize all rounds into a conclusion", "create the final output with watchlist and
-  scenario outlook", "produce the debate summary", or "compile verified facts, contested
-  points, and recommendations". Generates the final debate report from all rounds' data.
-  从所有回合数据生成最终辩论报告，含结论画像和 Markdown 报告。
-version: 0.5.0
+  Generates the final debate report with verified facts, probable conclusions, enriched
+  contested points, scenario outlook, conclusion profiles, and 24h watchlist. Use this
+  skill when the orchestrator needs to generate the final debate report, synthesize all
+  rounds into conclusions, create output with watchlist and scenario outlook, produce
+  the debate summary, compile verified facts and contested points, or generate bilingual
+  Markdown and English JSON reports.
 license: MIT-0
+compatibility: Requires bash and jq for JSON validation.
 metadata:
-  openclaw:
-    requires:
-      bins: [bash, jq]
-    homepage: "https://github.com/xwxga/critical-debater"
-    emoji: "📊"
+  version: "0.6.0"
+  author: xwxga
+  homepage: "https://github.com/xwxga/critical-debater"
+  tags: debate, report, synthesis, conclusion-profiles
+  emoji: "📊"
 ---
 
 # FinalSynthesis
@@ -23,6 +24,7 @@ metadata:
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.6.0: Agent Skills open standard compliance — frontmatter restructured, English-only description, progressive disclosure, evals added / Agent Skills 开放标准兼容 — 前置元数据重构、纯英文描述、渐进式披露、添加评测 |
 | 2026-03-11 | Claude | Enrich contested points to per-point subsections; switch from inline bilingual to English JSON + two-part MD (EN first, then CN appendix) / 争议点从单行表格升级为逐点子章节；语言从行内双语改为英文 JSON + 双段 MD（英文在前，中文附后） |
 
 Generate the final debate report with verified facts, probable conclusions, contested points, scenario outlook, and 24h watchlist.
@@ -239,158 +241,17 @@ Include in FinalReport:
 4. Validate with `scripts/validate-json.sh <file> final_report`
 5. Log report generation via `scripts/append-audit.sh`
 
-#### Output Format: `full_report` (default)
-Current behavior — generate complete FinalReport with all sections.
+### Output Format Variants & Report Templates
+### 输出格式变体和报告模板
 
-#### Output Format: `executive_summary`
-Generate a condensed version:
-1. One-paragraph summary of the debate conclusion (bilingual)
-2. Top 3-5 verified facts (bullet points)
-3. Top 2-3 contested points with one-sentence explanation each
-4. Scenario outlook: base case + top 2 triggers only
-5. Top 3 watchlist items
+See [references/report-templates.md](references/report-templates.md) for:
+参见 [references/report-templates.md](references/report-templates.md)：
 
-Write to `reports/executive_summary.json` AND `reports/final_report.json` (full version still generated for reference).
-
-Present the executive summary to the user, with a note that the full report is available.
-
-#### Output Format: `decision_matrix`
-Generate a structured decision matrix:
-1. Extract the core decision dimensions from the debate (LLM identifies 4-8 key factors)
-2. For each dimension:
-   - Factor name
-   - Pro side's evidence/argument summary (1-2 sentences)
-   - Con side's evidence/argument summary (1-2 sentences)
-   - Evidence strength: strong | moderate | weak (based on claim statuses)
-   - Judge's assessment note
-3. Overall recommendation: Which side has stronger evidence across factors?
-4. Key uncertainty: What single factor could flip the conclusion?
-
-Write to `reports/decision_matrix.json` AND `reports/final_report.json`.
-
-### Red Team Report Format / 红队报告格式
-
-When `config.mode = "red_team"`, replace the standard FinalReport structure with:
-
-```json
-{
-  "topic": "...",
-  "mode": "red_team",
-  "risk_assessment": [
-    {
-      "risk_id": "risk_1",
-      "risk_description": "...",
-      "severity": "critical | high | medium | low",
-      "likelihood": "high | medium | low",
-      "risk_score": "severity x likelihood qualitative",
-      "red_team_argument": "How and why this risk could materialize...",
-      "blue_team_mitigation": "Proposed mitigation and residual risk...",
-      "judge_verdict": "Is mitigation feasible? Is residual risk acceptable?",
-      "evidence_ids": ["..."]
-    }
-  ],
-  "unmitigated_risks": ["Risks where Blue Team had no effective response..."],
-  "risk_matrix_summary": "Overall risk posture assessment...",
-  "recommended_actions": ["Prioritized list of actions to reduce risk..."]
-}
-```
-
-### Step 6: Generate Markdown Report / 生成 Markdown 报告
-
-Generate a structured Markdown report for human consumption.
-
-Output: `reports/debate_report.md` (inside workspace directory)
-
-Structure:
-
-```markdown
-# Debate Report: <topic>
-## Executive Summary
-<executive_summary from Step 4.5>
-
-## Decision Matrix
-| Factor | Assessment | Confidence | Key Evidence |
-|---|---|---|---|
-
-## Verified Facts
-| # | Claim | Status | Sources | Track |
-|---|---|---|---|---|
-
-## Contested Points
-
-### CP-1: <point title>
-**Status**: <resolution_status>
-
-**Pro Position**: <pro's strongest argument + evidence refs>
-
-**Con Position**: <con's strongest argument + evidence refs>
-
-**Key Rebuttals**:
-- **[Pro → Con]** <target>: <argument> (Evidence: evi_xxx)
-- **[Con → Pro]** <target>: <argument> (Evidence: evi_yyy)
-
-**Judge Assessment**: <evaluation>
-
----
-
-### CP-2: ...
-(repeat for each contested point, ~200-400 words each)
-
-## Key Arguments by Round
-### Round N
-| Side | Core Argument | Strength | Key Evidence |
-|---|---|---|---|
-
-## Scenario Outlook
-| Scenario | Probability | Trigger | Timeframe |
-|---|---|---|---|
-
-## Watchlist
-| # | Item | Why It Matters | Monitor How |
-|---|---|---|---|
-
-## Evidence Inventory
-| ID | Source | Type | Tier | Freshness | Track |
-|---|---|---|---|---|---|
-
-## Conclusion Profiles (if Red Team mode)
-| Dimension | Assessment | Confidence |
-|---|---|---|
-
-## Methodology
-- Rounds: N, Mode: balanced/red_team
-- Evidence items: X, Sources verified: Y
-- Generated: <timestamp>
-
----
-
-# 辩论报告：<topic>
-## 执行摘要
-...
-## 争议点
-### 争点-1: <标题>
-**状态**: ...
-**正方立场**: ...
-**反方立场**: ...
-**关键反驳**: ...
-**裁判评估**: ...
-
----
-
-### 争点-2: ...
-
-## 各轮关键论点
-...
-## 情景展望
-...
-## 监控清单
-...
-## 证据清单
-...
-## 方法论
-...
-(complete semantic Chinese translation of all English sections above)
-```
+- `full_report` (default): Complete FinalReport with all sections / 完整报告
+- `executive_summary`: Condensed version / 凝缩版
+- `decision_matrix`: Structured decision format / 结构化决策格式
+- Red Team report JSON structure / 红队报告 JSON 结构
+- Complete Markdown report template (EN + CN) / 完整 Markdown 报告模板
 
 ## Output Principles / 输出原则
 

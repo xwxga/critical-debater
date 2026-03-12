@@ -5,6 +5,7 @@
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.6.0 升级：Agent Skills 开放标准兼容、描述优化、渐进式披露、evals 评测 / v0.6.0 upgrade: Agent Skills open standard compliance, description optimization, progressive disclosure, evals |
 | 2026-03-11 | Claude | 项目更名 Insight Debator → Critical Debater / Renamed project |
 | 2026-03-11 | Claude | v0.5.0 升级：修复 6 个断开的 symlink，恢复 SKILL.md，全部 skill 统一版本号 / v0.5.0 upgrade: fix 6 broken symlinks, recover SKILL.md files, unify all skill versions |
 | 2026-03-11 | Claude | v0.2.0 升级：Skills 合并到 .claude/skills/，移除 PDF 和 pre_mortem，动态 workspace 路径 / v0.2.0 upgrade: consolidated skills to .claude/skills/, removed PDF and pre_mortem, dynamic workspace paths |
@@ -15,10 +16,10 @@
 
 ## Project Overview / 项目概述
 
-Multi-agent debate system with 4 agents (Pro, Con, Judge, Orchestrator), 9 skills (v0.5.0), and file-based state management.
-多 agent 辩论系统：4 个 agent、9 个 skill（v0.5.0）、基于文件的状态管理。
+Multi-agent debate system with 4 agents (Pro, Con, Judge, Orchestrator), 9 skills (v0.6.0), and file-based state management. Agent Skills open standard compliant, skills.sh compatible.
+多 agent 辩论系统：4 个 agent、9 个 skill（v0.6.0）、基于文件的状态管理。符合 Agent Skills 开放标准，兼容 skills.sh。
 
-**Current version / 当前版本:** v0.5.0 — Fixed broken symlinks, recovered all SKILL.md files, unified skill versions. Skills in `.claude/skills/`, Markdown report output, dynamic workspace paths.
+**Current version / 当前版本:** v0.6.0 — Agent Skills open standard compliance, English-only descriptions, progressive disclosure (template extraction), evals for all skills. Skills in `.claude/skills/`, Markdown report output, dynamic workspace paths.
 
 Design spec: `docs/debate_system_v2.md`
 v3 upgrade roadmap: `docs/upgrade-roadmap-v3.md`

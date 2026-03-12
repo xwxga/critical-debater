@@ -1,25 +1,27 @@
 ---
 name: source-ingest
 description: >
-  This skill should be used when the debate system needs to "search for evidence",
-  "gather sources for a debate topic", "ingest and normalize sources", "fetch web content
-  for evidence", "build the initial evidence store", or "find supporting data for arguments".
-  Searches, fetches, and normalizes sources into EvidenceItem format for the debate evidence store.
-  搜索、抓取并将来源规范化为 EvidenceItem 格式，支持领域感知可信度和社交媒体预筛。
-version: 0.5.0
+  Searches, fetches, and normalizes web sources into structured EvidenceItem format
+  for debate evidence stores. Use this skill when the debate system needs to search
+  for evidence, gather sources for a topic, ingest and normalize sources, fetch web
+  content for evidence, build the initial evidence store, find supporting data for
+  arguments, perform domain-aware credibility assessment, or pre-screen social media
+  sources for misinformation indicators.
 license: MIT-0
+compatibility: Requires bash and shasum. Internet access for WebSearch and WebFetch.
 metadata:
-  openclaw:
-    requires:
-      bins: [bash, shasum]
-    homepage: "https://github.com/xwxga/critical-debater"
-    emoji: "🔍"
+  version: "0.6.0"
+  author: xwxga
+  homepage: "https://github.com/xwxga/critical-debater"
+  tags: debate, evidence, web-search, source-verification
+  emoji: "🔍"
 ---
 
 ## Changelog / 变更日志
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.6.0: Agent Skills open standard compliance — frontmatter restructured, English-only description, progressive disclosure, evals added / Agent Skills 开放标准兼容 — 前置元数据重构、纯英文描述、渐进式披露、添加评测 |
 | 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
 
 # SourceIngest

@@ -1,25 +1,26 @@
 ---
 name: freshness-check
 description: >
-  This skill should be used when the system needs to "check evidence freshness",
-  "validate timeliness of claims", "tag evidence as current or stale or timeless",
-  "verify real-time information capability", or "assess source currency for current-state claims".
-  Validates evidence timeliness and tags freshness status based on evidence track.
-  验证证据时效性并根据证据轨道标记时效状态。
-version: 0.5.0
+  Validates evidence timeliness and tags freshness status based on evidence track type.
+  Use this skill when the system needs to check evidence freshness, validate timeliness
+  of claims, tag evidence as current or stale or timeless, verify real-time information
+  capability, assess source currency, or distinguish fact-track evidence (time-sensitive)
+  from reasoning-track evidence (timeless).
 license: MIT-0
+compatibility: Internet access needed for real-time capability check.
 metadata:
-  openclaw:
-    requires:
-      bins: []
-    homepage: "https://github.com/xwxga/critical-debater"
-    emoji: "⏰"
+  version: "0.6.0"
+  author: xwxga
+  homepage: "https://github.com/xwxga/critical-debater"
+  tags: debate, evidence, freshness, timeliness
+  emoji: "⏰"
 ---
 
 ## Changelog / 变更日志
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.6.0: Agent Skills open standard compliance — frontmatter restructured, English-only description, progressive disclosure, evals added / Agent Skills 开放标准兼容 — 前置元数据重构、纯英文描述、渐进式披露、添加评测 |
 | 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
 
 # FreshnessCheck

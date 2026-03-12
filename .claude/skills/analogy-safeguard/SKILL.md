@@ -1,26 +1,26 @@
 ---
 name: analogy-safeguard
 description: >
-  This skill should be used when "validating historical analogies in a debate turn",
-  "checking if an analogy meets structural requirements", "verifying analogy has enough
-  similarities and differences", "assessing analogy content share percentage", or
-  "auditing classical reference compliance". Validates historical analogy usage
-  against structural and proportion rules.
-  验证历史类比使用是否符合结构和比例规则。
-version: 0.5.0
+  Validates historical and classical analogies in debate arguments for structural
+  compliance. Use this skill when checking if an analogy has sufficient similarities and
+  differences, assessing analogy content share percentage, validating historical parallel
+  structure, auditing classical reference compliance, or verifying debate arguments that
+  reference historical precedents. Supports strict mode for core arguments and advisory
+  mode for historical wisdom sections.
 license: MIT-0
 metadata:
-  openclaw:
-    requires:
-      bins: []
-    homepage: "https://github.com/xwxga/critical-debater"
-    emoji: "📜"
+  version: "0.6.0"
+  author: xwxga
+  homepage: "https://github.com/xwxga/critical-debater"
+  tags: debate, analogy, historical-reasoning, validation
+  emoji: "📜"
 ---
 
 ## Changelog / 变更日志
 
 | 时间 / Time | 作者 / Author | 变更 / Change |
 |---|---|---|
+| 2026-03-11 | Claude | v0.6.0: Agent Skills open standard compliance — frontmatter restructured, English-only description, progressive disclosure, evals added / Agent Skills 开放标准兼容 — 前置元数据重构、纯英文描述、渐进式披露、添加评测 |
 | 2026-03-11 | Claude | v0.5.0: recovered from broken symlink, unified version / 从断开的 symlink 恢复，统一版本号 |
 
 # AnalogySafeguard
