@@ -1,0 +1,13 @@
+{
+  "name": "critical-debater-suite",
+  "description": "Unified debate suite skill for source ingestion, debate turns, judge audit, claim ledger updates, and final synthesis. Supports ClawHub/OpenClaw, Claude Code, and OpenAI Codex/API bundles.",
+  "version": "0.7.0",
+  "license": "MIT-0",
+  "requires_bins": ["bash", "jq", "python3", "shasum"],
+  "platform_overrides": {
+    "clawhub": {
+      "emoji": "🏛️",
+      "homepage": "https://github.com/xwxga/critical-debater"
+    }
+  }
+}

@@ -1,5 +1,10 @@
 # Debate workspace outputs (runtime data, not source)
 debate-workspace*/
+debates/
+
+# Python caches
+scripts/__pycache__/
+**/__pycache__/
 
 # Claude local settings (machine-specific permissions cache)
 .claude/settings.local.json

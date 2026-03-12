@@ -114,19 +114,41 @@ The system will:
 
 ## Skills / 技能
 
-9 composable skills power the system:
+This repository now publishes **one suite skill**:
 
-| Skill | Purpose / 用途 |
-|---|---|
-| 🏛️ `debate` | Entry point — parse args, launch orchestrator / 入口：解析参数，启动编排 |
-| 🔍 `source-ingest` | Web search → EvidenceItem normalization / 搜索 → 证据标准化 |
-| ⏰ `freshness-check` | Tag evidence: current / stale / timeless / 时效标记 |
-| ✅ `evidence-verify` | Cross-source verification + Twitter corroboration / 跨源验证 |
-| 🎤 `debate-turn` | Build arguments with 5-element reasoning chains / 构建推理链论证 |
-| 📜 `analogy-safeguard` | Validate historical analogy structure / 历史类比结构验证 |
-| ⚖️ `judge-audit` | Independent verification + causal audit + ruling / 独立验证 + 因果审计 |
-| 📋 `claim-ledger-update` | Claim state machine management / 声明状态机管理 |
-| 📊 `final-synthesis` | Final report + conclusion profiles + Markdown / 最终报告生成 |
+- `critical-debater-suite` (single entry skill for ClawHub/OpenClaw, Claude Code, and OpenAI Codex/API).
+
+The suite routes requests into internal capability modules:
+
+- `debate`
+- `source-ingest`
+- `freshness-check`
+- `evidence-verify`
+- `debate-turn`
+- `analogy-safeguard`
+- `judge-audit`
+- `claim-ledger-update`
+- `final-synthesis`
+
+Canonical source lives in `skills-src/critical-debater-suite/` and generated bundles are:
+
+- `skills/critical-debater-suite/` (ClawHub/OpenClaw)
+- `.claude/skills/critical-debater-suite/` (Claude Code)
+- `openai/skills/critical-debater-suite/` (OpenAI Codex/API)
+
+Build and release helpers:
+
+```bash
+# Generate all three platform bundles
+python3 scripts/build-suite-skill.py
+
+# Validate ClawHub/OpenClaw bundle compliance
+bash scripts/check-clawhub-suite.sh
+
+# Publish or sync with ClawHub CLI
+bash scripts/publish-clawhub-suite.sh publish
+bash scripts/publish-clawhub-suite.sh sync
+```
 
 ---
 
@@ -230,7 +252,7 @@ debates/bitcoin-vs-gold-20260311/
 - **Agents**: Claude Sonnet (debaters) + Claude Opus (judge)
 - **State**: File-based JSON — no database needed
 - **Scripts**: Bash (workspace init, JSON validation, audit logging)
-- **Skills**: 9 composable `.claude/skills/` with OpenClaw-compatible frontmatter
+- **Skills**: 1 suite skill with canonical source in `skills-src/` and generated platform bundles
 
 ---
 

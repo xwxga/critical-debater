@@ -19,7 +19,7 @@ from textwrap import dedent
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACT_PATH = ROOT / "skills/critical-debater-suite/references/data-contracts.md"
+CONTRACT_PATH = ROOT / "references/data-contracts.md"
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 

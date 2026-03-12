@@ -7,14 +7,6 @@ description: >
   "auditing classical reference compliance". Validates historical analogy usage
   against structural and proportion rules.
   验证历史类比使用是否符合结构和比例规则。
-version: 0.5.0
-license: MIT-0
-metadata:
-  openclaw:
-    requires:
-      bins: []
-    homepage: "https://github.com/xwxga/critical-debater"
-    emoji: "📜"
 ---
 
 ## Changelog / 变更日志
@@ -28,6 +20,29 @@ metadata:
 
 Validate that historical and classical analogies in debate turns comply with structural requirements and proportion limits.
 验证辩论回合中的历史和经典类比是否符合结构要求和比例限制。
+
+## Runtime Capability Contract / 运行时能力契约
+
+Use the shared generic capability contract:
+
+- `../_shared/references/capability-adapter.md`
+- `../_shared/references/execution-envelope.md`
+
+Tool names in this skill are capability-level and provider-agnostic:
+- `search`
+- `fetch`
+- `spawn_role`
+- `validate_json`
+- `append_audit`
+
+Fallback policy:
+- `search`: native -> adapter -> `evidence_gap` soft-failure with audit note
+- `fetch`: native -> adapter -> `fetch_skipped` soft-failure with audit note
+- `spawn_role`: native -> adapter -> serial role emulation (`pro -> con -> judge`)
+
+Model policy:
+- Use tier names only: `fast`, `balanced`, `deep`
+- Map provider-specific model names to these tiers at runtime
 
 ## When to Use / 何时使用
 
