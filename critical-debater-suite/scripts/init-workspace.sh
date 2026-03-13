@@ -2,9 +2,13 @@
 # init-workspace.sh — Create debate workspace directory structure
 set -euo pipefail
 
-WORKSPACE_DIR="${1:?Usage: $0 <workspace_dir> <topic> <rounds>}"
-TOPIC="${2:?Usage: $0 <workspace_dir> <topic> <rounds>}"
+WORKSPACE_DIR="${1:?Usage: $0 <workspace_dir> <topic> <rounds> [depth] [mode] [evidence_refresh] [language]}"
+TOPIC="${2:?Usage: $0 <workspace_dir> <topic> <rounds> [depth] [mode] [evidence_refresh] [language]}"
 ROUNDS="${3:-3}"
+DEPTH="${4:-standard}"
+MODE="${5:-balanced}"
+EVIDENCE_REFRESH="${6:-hybrid}"
+LANGUAGE="${7:-bilingual}"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 mkdir -p "$WORKSPACE_DIR"/{evidence,claims,rounds,reports,logs}
@@ -17,6 +21,10 @@ cat > "$WORKSPACE_DIR/config.json" <<EOF
 {
   "topic": $(printf '%s' "$TOPIC" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),
   "round_count": $ROUNDS,
+  "depth": "$DEPTH",
+  "mode": "$MODE",
+  "evidence_refresh": "$EVIDENCE_REFRESH",
+  "language": "$LANGUAGE",
   "current_round": 0,
   "status": "initialized",
   "created_at": "$TIMESTAMP",

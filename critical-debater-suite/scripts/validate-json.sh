@@ -17,7 +17,7 @@ fi
 
 case "$SCHEMA" in
   config)
-    REQUIRED='["topic", "round_count", "current_round", "status", "created_at"]'
+    REQUIRED='["topic", "round_count", "depth", "mode", "evidence_refresh", "language", "current_round", "status", "created_at"]'
     ;;
   evidence_item)
     REQUIRED='["evidence_id", "source_type", "url", "snippet", "hash", "credibility_tier", "freshness_status", "evidence_track"]'
@@ -27,6 +27,7 @@ case "$SCHEMA" in
     ;;
   judge_ruling)
     REQUIRED='["round", "verification_results", "mandatory_response_points", "round_summary"]'
+    DEEP_CHECK="judge_ruling"
     ;;
   final_report)
     REQUIRED='["topic", "total_rounds", "verified_facts", "probable_conclusions", "contested_points", "to_verify", "scenario_outlook", "watchlist_24h"]'
@@ -75,6 +76,34 @@ if [ -n "${DEEP_CHECK:-}" ] && [ "$DEEP_CHECK" = "reasoning_chain" ]; then
         fi
       done
     done
+  fi
+fi
+
+# Deep check: judge_ruling historical_wisdom_assessment key names.
+if [ -n "${DEEP_CHECK:-}" ] && [ "$DEEP_CHECK" = "judge_ruling" ]; then
+  HAS_HWA=$(jq 'has("historical_wisdom_assessment")' "$FILE")
+  if [ "$HAS_HWA" = "true" ]; then
+    HWA_IS_ARRAY=$(jq '.historical_wisdom_assessment | type == "array"' "$FILE")
+    if [ "$HWA_IS_ARRAY" != "true" ]; then
+      echo "ERROR: historical_wisdom_assessment must be an array in $FILE" >&2
+      ERRORS=$((ERRORS + 1))
+    else
+      HWA_COUNT=$(jq '.historical_wisdom_assessment | length' "$FILE")
+      if [ "$HWA_COUNT" -gt 0 ] 2>/dev/null; then
+        for idx in $(seq 0 $((HWA_COUNT - 1))); do
+          HAS_REL=$(jq --argjson i "$idx" '.historical_wisdom_assessment[$i] | has("relevance_grade")' "$FILE")
+          HAS_HON=$(jq --argjson i "$idx" '.historical_wisdom_assessment[$i] | has("honesty_grade")' "$FILE")
+          if [ "$HAS_REL" != "true" ]; then
+            echo "ERROR: historical_wisdom_assessment[$idx] missing 'relevance_grade' in $FILE" >&2
+            ERRORS=$((ERRORS + 1))
+          fi
+          if [ "$HAS_HON" != "true" ]; then
+            echo "ERROR: historical_wisdom_assessment[$idx] missing 'honesty_grade' in $FILE" >&2
+            ERRORS=$((ERRORS + 1))
+          fi
+        done
+      fi
+    fi
   fi
 fi
 
