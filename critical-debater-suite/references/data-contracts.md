@@ -1,5 +1,11 @@
 # Data Contracts — JSON Schemas
 
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| 2026-03-13 17:44 | Codex | 同步新增失败态与审计事件：failed_* + step_failed / Add failure statuses and step_failed audit event |
+
 Single source of truth for all agent outputs. All agents and capabilities reference these schemas.
 
 ---
@@ -385,7 +391,7 @@ Transitions (8 total):
   "focus_areas": ["user-defined dimensions to focus on"],
   "mode": "balanced | red_team",
   "evidence_refresh": "upfront_only | per_round | hybrid",
-  "status": "initialized | in_progress | complete"
+  "status": "initialized | in_progress | round_N_complete | complete | failed_initialization | failed_round_N | failed_final_synthesis | failed_report_validation"
 }
 ```
 
@@ -396,5 +402,5 @@ Transitions (8 total):
 Each line in `logs/audit_trail.jsonl`:
 
 ```json
-{"timestamp": "2026-03-09T12:00:00Z", "action": "workspace_initialized | round_started | pro_turn_complete | con_turn_complete | judge_ruling_complete | claim_status_changed | evidence_added | report_generated | refresh_triggered | per_round_evidence_ingest | evidence_merged_from_turn", "details": {}}
+{"timestamp": "2026-03-09T12:00:00Z", "action": "workspace_initialized | round_started | pro_turn_complete | con_turn_complete | judge_ruling_complete | claim_status_changed | evidence_added | report_generated | refresh_triggered | per_round_evidence_ingest | evidence_merged_from_turn | step_failed", "details": {"step_id":"...","stage":"...","error_type":"...","reason":"...","exit_code":1,"status":"failed_*"}}
 ```

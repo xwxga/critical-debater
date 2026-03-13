@@ -1,5 +1,11 @@
 # Capability: Final Synthesis
 
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| 2026-03-13 17:42 | Codex | 新增强制完成条件：原子写入 + JSON/Markdown 双校验 + 失败即阻断 / Add hard completion contract: atomic writes + dual validation + fail-fast |
+
 ## Purpose
 
 Generate the final debate report after all rounds complete. Produces both structured JSON (`final_report.json`) and bilingual Markdown (`debate_report.md`).
@@ -125,12 +131,13 @@ Collect best speculative scenarios from all rounds:
 
 ### 11. Write final_report.json
 
-Write to `reports/final_report.json` following FinalReport schema.
+Write to `reports/final_report.tmp.json` first, then atomically rename to `reports/final_report.json`.
 Validate with `scripts/validate-json.sh final_report.json final_report`.
 
 ### 12. Generate debate_report.md
 
-Write bilingual Markdown report to `reports/debate_report.md` following the EXPLICIT format from Section 8 of the spec:
+Write bilingual Markdown report to `reports/debate_report.tmp.md` first, then atomically rename to `reports/debate_report.md`.
+The final markdown MUST follow the EXPLICIT format from Section 8 of the spec:
 
 ```markdown
 # Debate Report: {Topic}
@@ -152,6 +159,14 @@ Write bilingual Markdown report to `reports/debate_report.md` following the EXPL
 ```
 
 This format is EXPLICIT, not emergent. The report MUST match this structure.
+
+After writing, validate with:
+
+```bash
+scripts/validate-debate-report.sh reports/debate_report.md
+```
+
+If validation fails, do not emit completion marker.
 
 ### 12a. debate_report.md Detailed Table Formats
 
@@ -221,4 +236,8 @@ This format is EXPLICIT, not emergent. The report MUST match this structure.
 
 ## Completion Marker
 
-Output `DONE:final_synthesis` when complete.
+Output `DONE:final_synthesis` only when ALL conditions are met:
+
+1. `reports/final_report.json` exists and passes `validate-json.sh final_report`.
+2. `reports/debate_report.md` exists and passes `validate-debate-report.sh`.
+3. Both outputs are atomically finalized (tmp -> final rename complete).
