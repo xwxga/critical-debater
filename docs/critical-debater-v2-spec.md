@@ -1210,9 +1210,9 @@ class Options:
     step_timeout_sec: int
 
 # Execution pattern — dispatch steps with completion markers
-def codex_exec(step_id: str, prompt: str):
+def dispatch_agent(step_id: str, prompt: str):
     # 1. Build prompt with all context (file paths, schemas)
-    # 2. Execute via runtime (codex exec, claude agent, etc.)
+    # 2. Execute via detected runtime (claude -p, codex -p, etc.)
     # 3. Check for completion marker: "DONE:{step_id}"
     # 4. Log output to logs/{step_id}.log
     # 5. If failed: retry up to 2 times, then raise
@@ -1221,8 +1221,8 @@ def codex_exec(step_id: str, prompt: str):
 def run_per_round_ingest(round_num: int):
     # 1. Read judge_ruling from round N-1
     # 2. Extract search focus from mandatory_response_points + contested claims
-    # 3. codex_exec("source_ingest_round_{N}", focused_ingest_prompt)
-    # 4. codex_exec("freshness_check_round_{N}", freshness_prompt)
+    # 3. dispatch_agent("source_ingest_round_{N}", focused_ingest_prompt)
+    # 4. dispatch_agent("freshness_check_round_{N}", freshness_prompt)
     # 5. Audit log: per_round_evidence_ingest
 
 def run_parallel_debate_turn(round_num: int):

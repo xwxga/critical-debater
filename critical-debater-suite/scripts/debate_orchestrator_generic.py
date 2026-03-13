@@ -143,13 +143,13 @@ def get_runtime() -> str:
     return _RUNTIME
 
 
-def codex_exec(step_id: str, prompt: str, model_tier: str = "balanced",
-               timeout_sec: int = 300) -> bool:
+def dispatch_agent(step_id: str, prompt: str, model_tier: str = "balanced",
+                   timeout_sec: int = 300) -> bool:
     """
     Execute a step via the detected agent runtime.
 
-    Claude Code  → claude --dangerously-skip-permissions -p <prompt>
-    Codex        → codex exec -p <prompt>
+    Claude Code  → claude -p <prompt> --model <model>
+    Codex        → codex -p <prompt> --model <model>
     None         → ERROR, returns False
 
     Returns True if step completed successfully (DONE:{step_id} marker found).
@@ -162,14 +162,12 @@ def codex_exec(step_id: str, prompt: str, model_tier: str = "balanced",
 
     if runtime == "claude":
         cmd = [
-            "claude", "--dangerously-skip-permissions",
-            "-p", prompt,
+            "claude", "-p", prompt,
             "--model", model,
         ]
     elif runtime == "codex":
         cmd = [
-            "codex", "exec",
-            "-p", prompt,
+            "codex", "-p", prompt,
             "--model", model,
         ]
     else:
@@ -215,14 +213,14 @@ def codex_exec(step_id: str, prompt: str, model_tier: str = "balanced",
 
 def parallel_exec(tasks: list[tuple[str, str, str, int]]) -> dict[str, bool]:
     """
-    Execute multiple codex_exec tasks in parallel.
+    Execute multiple dispatch_agent tasks in parallel.
     Each task: (step_id, prompt, model_tier, timeout_sec)
     Returns: {step_id: success_bool}
     """
     results = {}
     with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
         futures = {
-            executor.submit(codex_exec, sid, prompt, tier, timeout): sid
+            executor.submit(dispatch_agent, sid, prompt, tier, timeout): sid
             for sid, prompt, tier, timeout in tasks
         }
         for future in as_completed(futures):
@@ -280,7 +278,7 @@ def run_debate(workspace: str, opts: Options):
     # Step 1a: Source Ingest (broad)
     depth_queries = {"quick": 3, "standard": 5, "deep": 8}
     num_queries = depth_queries.get(opts.depth, 5)
-    codex_exec(
+    dispatch_agent(
         "source_ingest_round_0",
         f"Execute source-ingest.md: topic={opts.topic}, mode=broad, round=0, "
         f"depth={opts.depth}, num_queries={num_queries}. "
@@ -289,7 +287,7 @@ def run_debate(workspace: str, opts: Options):
     )
 
     # Step 1b: Freshness Check
-    codex_exec(
+    dispatch_agent(
         "freshness_check_0",
         f"Execute freshness-check.md: workspace={workspace}",
         model_tier="balanced",
@@ -303,7 +301,7 @@ def run_debate(workspace: str, opts: Options):
             print(f"[{timestamp()}] Warning: Only {len(evidence)} evidence items "
                   f"(minimum: {opts.min_evidence}). Retrying ingest...")
             for retry in range(opts.source_retries):
-                codex_exec(
+                dispatch_agent(
                     f"source_ingest_retry_{retry+1}",
                     f"Execute source-ingest.md: topic={opts.topic}, mode=broad, round=0, "
                     f"broaden keywords. Workspace: {workspace}",
@@ -342,13 +340,13 @@ def run_debate(workspace: str, opts: Options):
                 flags = ruling.get("causal_validity_flags", [])
                 search_focus = json.dumps({"mrps": mrps, "flags": flags})
 
-            codex_exec(
+            dispatch_agent(
                 f"source_ingest_round_{round_num}",
                 f"Execute source-ingest.md: topic={opts.topic}, mode=focused, "
                 f"round={round_num}, search_focus={search_focus}. Workspace: {workspace}",
                 model_tier="balanced",
             )
-            codex_exec(
+            dispatch_agent(
                 f"freshness_check_round_{round_num}",
                 f"Execute freshness-check.md: workspace={workspace}",
                 model_tier="balanced",
@@ -396,7 +394,7 @@ def run_debate(workspace: str, opts: Options):
                     print(f"[{timestamp()}] Validation failed for {side}_turn, retrying...")
                     # Max 2 retries
                     for retry in range(2):
-                        codex_exec(
+                        dispatch_agent(
                             f"debate_turn_{side}_round_{round_num}_retry_{retry+1}",
                             f"Re-execute debate-turn.md: fix JSON validation errors. "
                             f"side={side}, round={round_num}. Workspace: {workspace}",
@@ -410,7 +408,7 @@ def run_debate(workspace: str, opts: Options):
 
         # Step 2d: Judge audit
         print(f"[{timestamp()}] Judge audit for round {round_num}")
-        codex_exec(
+        dispatch_agent(
             f"judge_audit_round_{round_num}",
             f"Execute judge-audit.md: round={round_num}. Workspace: {workspace}",
             model_tier="deep",
@@ -426,7 +424,7 @@ def run_debate(workspace: str, opts: Options):
 
         # Step 2e: Post-round processing
         print(f"[{timestamp()}] Post-round processing")
-        codex_exec(
+        dispatch_agent(
             f"claim_ledger_update_round_{round_num}",
             f"Execute claim-ledger-update.md: round={round_num}. Workspace: {workspace}",
             model_tier="balanced",
@@ -444,7 +442,7 @@ def run_debate(workspace: str, opts: Options):
     print(f"PHASE 3: FINAL OUTPUT")
     print(f"{'='*60}")
 
-    codex_exec(
+    dispatch_agent(
         "final_synthesis",
         f"Execute final-synthesis.md: workspace={workspace}",
         model_tier="deep",

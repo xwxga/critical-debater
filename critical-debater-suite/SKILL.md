@@ -42,7 +42,7 @@ Use provider-agnostic names in all capability prompts:
 |---|---|---|---|
 | `search` | WebSearch | web_search | web_search |
 | `fetch` | WebFetch | - | browse |
-| `spawn_role` | Agent | codex exec | - |
+| `spawn_role` | Agent | subprocess | - |
 | `read` | Read | read | read |
 | `write` | Write | write | write |
 
