@@ -16,6 +16,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+CONFIG_DEFAULTS = {
+    "depth": "standard",
+    "mode": "balanced",
+    "evidence_refresh": "hybrid",
+    "language": "bilingual",
+}
+
 
 @dataclass
 class Options:
@@ -106,6 +113,37 @@ def validate_debate_report(filepath: str) -> bool:
     return result.returncode == 0
 
 
+def run_renderer(workspace: str) -> StepResult:
+    """Deterministic fallback renderer for debate_report.md from final_report.json + round artifacts."""
+    script_path = Path(__file__).parent / "render-debate-report-from-json.py"
+    try:
+        proc = subprocess.run(
+            ["python3", str(script_path), workspace],
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode != 0:
+            return StepResult(
+                step_id="render_debate_report_from_json",
+                success=False,
+                error_type="renderer_failed",
+                reason=(proc.stderr or proc.stdout or "renderer failed")[:500],
+                exit_code=proc.returncode,
+            )
+        return StepResult(
+            step_id="render_debate_report_from_json",
+            success=True,
+            exit_code=0,
+        )
+    except FileNotFoundError:
+        return StepResult(
+            step_id="render_debate_report_from_json",
+            success=False,
+            error_type="renderer_missing",
+            reason=f"Renderer script not found: {script_path}",
+        )
+
+
 def read_json(filepath: str):
     with open(filepath) as f:
         return json.load(f)
@@ -122,6 +160,29 @@ def update_config(workspace: str, updates: dict):
     config.update(updates)
     config["updated_at"] = timestamp()
     write_json(config_path, config)
+
+
+def ensure_workspace_config_defaults(workspace: str, opts: Options):
+    """Backfill missing config fields for legacy workspaces and keep runtime options explicit."""
+    config_path = os.path.join(workspace, "config.json")
+    if not os.path.exists(config_path):
+        return
+
+    config = read_json(config_path)
+    updates = {}
+    defaults = {
+        "depth": opts.depth or CONFIG_DEFAULTS["depth"],
+        "mode": opts.mode or CONFIG_DEFAULTS["mode"],
+        "evidence_refresh": opts.evidence_refresh or CONFIG_DEFAULTS["evidence_refresh"],
+        "language": opts.language or CONFIG_DEFAULTS["language"],
+    }
+    for key, value in defaults.items():
+        if not config.get(key):
+            updates[key] = value
+
+    if updates:
+        update_config(workspace, updates)
+        append_audit(workspace, "config_migrated", {"updates": updates})
 
 
 # --- Runtime Adapter ---
@@ -323,8 +384,88 @@ def report_backup_path(workspace: str) -> str:
     return os.path.join(workspace, "reports", "debate_report.pre_final_synthesis.bak.md")
 
 
+def verify_claim_ledger_consistency(workspace: str, round_num: int) -> StepResult:
+    """Ensure judge verification_results are reflected in claim_ledger statuses."""
+    ledger_path = os.path.join(workspace, "claims", "claim_ledger.json")
+    judge_path = os.path.join(workspace, "rounds", f"round_{round_num}", "judge_ruling.json")
+
+    if not os.path.exists(ledger_path):
+        return StepResult(
+            step_id=f"claim_consistency_round_{round_num}",
+            success=False,
+            error_type="missing_output",
+            reason=f"Missing claim ledger: {ledger_path}",
+        )
+    if not os.path.exists(judge_path):
+        return StepResult(
+            step_id=f"claim_consistency_round_{round_num}",
+            success=False,
+            error_type="missing_output",
+            reason=f"Missing judge ruling: {judge_path}",
+        )
+
+    ledger = read_json(ledger_path)
+    judge = read_json(judge_path)
+    verification_results = judge.get("verification_results", [])
+    ledger_index = {item.get("claim_id"): item for item in ledger}
+
+    for vr in verification_results:
+        claim_id = vr.get("claim_id")
+        expected = vr.get("new_status")
+        reasoning = (vr.get("reasoning") or "").strip()
+
+        if not claim_id or not expected:
+            return StepResult(
+                step_id=f"claim_consistency_round_{round_num}",
+                success=False,
+                error_type="invalid_judge_output",
+                reason=f"verification_results item missing claim_id/new_status: {vr}",
+            )
+
+        if not reasoning:
+            return StepResult(
+                step_id=f"claim_consistency_round_{round_num}",
+                success=False,
+                error_type="invalid_judge_output",
+                reason=f"verification_results missing reasoning for claim {claim_id}",
+            )
+
+        entry = ledger_index.get(claim_id)
+        if entry is None:
+            return StepResult(
+                step_id=f"claim_consistency_round_{round_num}",
+                success=False,
+                error_type="claim_missing",
+                reason=f"claim_ledger missing claim_id {claim_id} from verification_results",
+            )
+
+        actual = entry.get("status")
+        if actual != expected:
+            return StepResult(
+                step_id=f"claim_consistency_round_{round_num}",
+                success=False,
+                error_type="claim_status_mismatch",
+                reason=f"claim {claim_id}: expected status {expected}, found {actual}",
+            )
+
+        append_audit(workspace, "claim_verification_applied", {
+            "round": round_num,
+            "claim_id": claim_id,
+            "expected_status": expected,
+            "actual_status": actual,
+        })
+
+    return StepResult(
+        step_id=f"claim_consistency_round_{round_num}",
+        success=True,
+        exit_code=0,
+    )
+
+
 def run_debate(workspace: str, opts: Options):
     """Run the full debate orchestration flow."""
+    ensure_workspace_config_defaults(workspace, opts)
+
     print(f"[{timestamp()}] Starting debate: {opts.topic}")
     print(f"[{timestamp()}] Rounds: {opts.rounds}, Depth: {opts.depth}, Mode: {opts.mode}")
 
@@ -545,6 +686,9 @@ def run_debate(workspace: str, opts: Options):
         )
         require_step(workspace, failed_status, "phase2_claim_ledger_update", claim_update)
 
+        claim_consistency = verify_claim_ledger_consistency(workspace, round_num)
+        require_step(workspace, failed_status, "phase2_claim_consistency", claim_consistency)
+
         merge_new_evidence(workspace, round_num)
 
         update_config(workspace, {
@@ -571,7 +715,18 @@ def run_debate(workspace: str, opts: Options):
         model_tier="deep",
         timeout_sec=final_timeout,
     )
-    require_step(workspace, "failed_final_synthesis", "phase3_final_synthesis", final_res)
+
+    if not final_res.success:
+        # Fallback path: allow deterministic markdown render only if final_report.json exists + valid.
+        if os.path.exists(report_json_path) and validate_json(report_json_path, "final_report"):
+            append_audit(workspace, "final_synthesis_fallback", {
+                "reason": final_res.reason,
+                "error_type": final_res.error_type,
+            })
+            render_res = run_renderer(workspace)
+            require_step(workspace, "failed_report_validation", "phase3_render_fallback", render_res)
+        else:
+            fail_step(workspace, "failed_final_synthesis", "phase3_final_synthesis", final_res)
 
     if not os.path.exists(report_json_path):
         missing_json = StepResult(
@@ -636,9 +791,21 @@ def main():
     if os.path.isfile(config_or_topic):
         opts = Options.from_config(config_or_topic)
     else:
-        # Initialize workspace
-        run_script("init-workspace.sh", [workspace, config_or_topic, str(rounds)], ".")
         opts = Options(topic=config_or_topic, rounds=rounds)
+        # Initialize workspace with explicit DebateConfig defaults.
+        run_script(
+            "init-workspace.sh",
+            [
+                workspace,
+                opts.topic,
+                str(opts.rounds),
+                opts.depth,
+                opts.mode,
+                opts.evidence_refresh,
+                opts.language,
+            ],
+            ".",
+        )
 
     try:
         run_debate(workspace, opts)

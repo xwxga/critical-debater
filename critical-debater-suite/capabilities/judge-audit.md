@@ -1,5 +1,11 @@
 # Capability: Judge Audit
 
+## Changelog / 变更日志
+
+| 时间 / Time | 作者 / Author | 变更 / Change |
+|---|---|---|
+| 2026-03-13 18:35 | Codex | 明确 historical_wisdom_assessment 字段名为 relevance_grade/honesty_grade / Enforce relevance_grade and honesty_grade field names |
+
 ## Purpose
 
 Impartial evaluation of a debate round. The Judge independently verifies claims, audits causal chains, evaluates analogies, and produces a structured ruling.
@@ -52,8 +58,8 @@ For each historical analogy used:
 - Verify >= 2 similarities cited
 - Verify >= 1 structural difference acknowledged
 - Check content share < ~15% of total argument
-- Grade relevance: `strong_parallel`, `moderate_parallel`, `weak_parallel`
-- Grade honesty: `honest`, `partially_honest`, `misleading`
+- Grade relevance via field `relevance_grade`: `strong_parallel`, `moderate_parallel`, `weak_parallel`
+- Grade honesty via field `honesty_grade`: `honest`, `partially_honest`, `misleading`
 
 ### 4. Mandatory Response Points
 
@@ -80,7 +86,14 @@ Write to `rounds/round_{N}/judge_ruling.json` following JudgeRuling schema:
   "verification_results": [...],
   "causal_validity_flags": [...],
   "mandatory_response_points": [...],
-  "historical_wisdom_assessment": [...],
+  "historical_wisdom_assessment": [
+    {
+      "analogy": "...",
+      "relevance_grade": "strong_parallel | moderate_parallel | weak_parallel",
+      "honesty_grade": "honest | partially_honest | misleading",
+      "notes": "..."
+    }
+  ],
   "round_summary": "..."
 }
 ```
