@@ -189,7 +189,8 @@ def ensure_workspace_config_defaults(workspace: str, opts: Options):
 
 MODEL_MAP = {
     "claude": {"fast": "sonnet", "balanced": "sonnet", "deep": "opus"},
-    "codex": {"fast": "gpt-4o-mini", "balanced": "gpt-4o", "deep": "o1"},
+    # Keep balanced/deep on Codex default model; use a lighter model for fast tier.
+    "codex": {"fast": "gpt-5.2-codex", "balanced": "gpt-5.3-codex", "deep": "gpt-5.3-codex"},
 }
 
 
@@ -236,6 +237,22 @@ def dispatch_agent(step_id: str, prompt: str, model_tier: str = "balanced",
     print(f"[{timestamp()}] Prompt length: {len(prompt)} chars")
 
     model = tier_to_model(model_tier, runtime)
+    effective_timeout = timeout_sec
+    if runtime == "codex":
+        # Codex source-ingest is web-heavy and consistently exceeds 300s in practice.
+        if step_id.startswith("source_ingest"):
+            effective_timeout = max(timeout_sec, 1200)
+        elif step_id.startswith("freshness_check"):
+            effective_timeout = max(timeout_sec, 600)
+        elif step_id.startswith("debate_turn_"):
+            effective_timeout = max(timeout_sec, 900)
+        elif step_id.startswith("judge_audit_"):
+            effective_timeout = max(timeout_sec, 900)
+        elif step_id == "final_synthesis":
+            effective_timeout = max(timeout_sec, 1800)
+
+    if effective_timeout != timeout_sec:
+        print(f"[{timestamp()}] Adjusted timeout for {step_id}: {timeout_sec}s -> {effective_timeout}s")
 
     if runtime == "claude":
         cmd = [
@@ -245,8 +262,10 @@ def dispatch_agent(step_id: str, prompt: str, model_tier: str = "balanced",
     elif runtime == "codex":
         cmd = [
             "codex", "exec",
+            "-c", "model_reasoning_effort=\"medium\"",
             "--sandbox", "workspace-write",
             "--color", "never",
+            "--model", model,
             prompt,
         ]
     else:
@@ -259,7 +278,7 @@ def dispatch_agent(step_id: str, prompt: str, model_tier: str = "balanced",
             cmd,
             capture_output=True,
             text=True,
-            timeout=timeout_sec,
+            timeout=effective_timeout,
         )
         stdout = result.stdout or ""
         stderr = result.stderr or ""
@@ -286,13 +305,23 @@ def dispatch_agent(step_id: str, prompt: str, model_tier: str = "balanced",
 
         return StepResult(step_id=step_id, success=success, exit_code=result.returncode)
 
-    except subprocess.TimeoutExpired:
-        print(f"[{timestamp()}] Step {step_id} TIMED OUT after {timeout_sec}s", file=sys.stderr)
+    except subprocess.TimeoutExpired as e:
+        stderr = e.stderr or ""
+        stdout = e.stdout or ""
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode("utf-8", "ignore")
+        if isinstance(stdout, bytes):
+            stdout = stdout.decode("utf-8", "ignore")
+        detail = (stderr or stdout or "").strip()
+        reason = f"Step timed out after {effective_timeout}s"
+        if detail:
+            reason += f"; partial output: {detail[:400]}"
+        print(f"[{timestamp()}] Step {step_id} TIMED OUT after {effective_timeout}s", file=sys.stderr)
         return StepResult(
             step_id=step_id,
             success=False,
             error_type="timeout",
-            reason=f"Step timed out after {timeout_sec}s",
+            reason=reason,
         )
     except FileNotFoundError:
         msg = f"Runtime '{runtime}' not found in PATH"
@@ -384,6 +413,10 @@ def report_backup_path(workspace: str) -> str:
     return os.path.join(workspace, "reports", "debate_report.pre_final_synthesis.bak.md")
 
 
+def _normalize_text(value: str) -> str:
+    return " ".join((value or "").strip().lower().split())
+
+
 def verify_claim_ledger_consistency(workspace: str, round_num: int) -> StepResult:
     """Ensure judge verification_results are reflected in claim_ledger statuses."""
     ledger_path = os.path.join(workspace, "claims", "claim_ledger.json")
@@ -409,17 +442,57 @@ def verify_claim_ledger_consistency(workspace: str, round_num: int) -> StepResul
     verification_results = judge.get("verification_results", [])
     ledger_index = {item.get("claim_id"): item for item in ledger}
 
+    def resolve_claim_id(vr: dict) -> tuple[Optional[str], str]:
+        """
+        Resolve claim_id from judge verification row.
+        Supports:
+        - current contract: claim_id + new_status + reasoning
+        - legacy contract: target + claim_index + status (+ reason)
+        """
+        direct_claim_id = vr.get("claim_id")
+        if direct_claim_id:
+            return direct_claim_id, "direct_claim_id"
+
+        target = (vr.get("target") or "").strip().lower()
+        claim_index = vr.get("claim_index")
+        if target in {"pro", "con"} and isinstance(claim_index, int):
+            inferred = f"clm_{round_num}_{target}_{claim_index}"
+            if inferred in ledger_index:
+                return inferred, "legacy_target_index"
+
+        claim_text = _normalize_text(vr.get("claim_text", ""))
+        if claim_text:
+            candidates = []
+            for item in ledger:
+                item_id = item.get("claim_id")
+                if not item_id:
+                    continue
+                if item.get("round") != round_num:
+                    continue
+                if target in {"pro", "con"} and item.get("speaker") != target:
+                    continue
+                item_text = _normalize_text(item.get("claim_text", ""))
+                if not item_text:
+                    continue
+                if claim_text in item_text or item_text in claim_text:
+                    candidates.append(item_id)
+
+            if len(candidates) == 1:
+                return candidates[0], "legacy_text_match"
+
+        return None, "unresolved"
+
     for vr in verification_results:
-        claim_id = vr.get("claim_id")
-        expected = vr.get("new_status")
-        reasoning = (vr.get("reasoning") or "").strip()
+        claim_id, resolved_by = resolve_claim_id(vr)
+        expected = vr.get("new_status") or vr.get("status")
+        reasoning = (vr.get("reasoning") or vr.get("reason") or "").strip()
 
         if not claim_id or not expected:
             return StepResult(
                 step_id=f"claim_consistency_round_{round_num}",
                 success=False,
                 error_type="invalid_judge_output",
-                reason=f"verification_results item missing claim_id/new_status: {vr}",
+                reason=f"verification_results item missing resolvable claim_id/new_status: {vr}",
             )
 
         if not reasoning:
@@ -453,6 +526,7 @@ def verify_claim_ledger_consistency(workspace: str, round_num: int) -> StepResul
             "claim_id": claim_id,
             "expected_status": expected,
             "actual_status": actual,
+            "resolved_by": resolved_by,
         })
 
     return StepResult(
